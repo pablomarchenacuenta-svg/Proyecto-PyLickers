@@ -35,6 +35,11 @@
       "nombre": "Quiz de Ciencias",
       "descripcion": "Un conjunto de preguntas sobre ciencias naturales",
       "preguntas": []
+    },
+    {
+      "nombre": "test",
+      "descripcion": "test",
+      "preguntas": []
     }
   ]
 }
