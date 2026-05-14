@@ -1,0 +1,6 @@
+argparse
+requests
+opencv-python
+numpy
+reportlab
+flask

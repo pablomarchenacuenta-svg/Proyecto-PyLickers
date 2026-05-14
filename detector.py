@@ -8,7 +8,8 @@ de cada alumno según la orientación del marcador.
 Uso:
     python detector.py                  # Ejecutar con webcam por defecto
     python detector.py --camara 1       # Usar cámara con índice 1
-    python detector.py --debug          # Mostrar info extra de depuración
+    python detector.py --debug          # Mostrar 
+    info extra de depuración
 
 Controles:
     Q / ESC  → Salir

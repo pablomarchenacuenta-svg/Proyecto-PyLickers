@@ -1,0 +1,40 @@
+{
+  "preguntas": [
+    {
+      "texto": "dfsfdsf",
+      "opciones": {
+        "A": "fdsaf",
+        "B": "fdsfdsa",
+        "C": "fdsafa",
+        "D": "fdsaf"
+      },
+      "correcta": "A"
+    }
+  ],
+  "sesiones": [],
+  "alumnos": {},
+  "respuestas_sesion": {},
+  "juegos": [
+    {
+      "nombre": "Test",
+      "descripcion": "Test",
+      "preguntas": [
+        {
+          "texto": "test",
+          "opciones": {
+            "A": "test",
+            "B": "test",
+            "C": "ste",
+            "D": "testtes"
+          },
+          "correcta": "A"
+        }
+      ]
+    },
+    {
+      "nombre": "Quiz de Ciencias",
+      "descripcion": "Un conjunto de preguntas sobre ciencias naturales",
+      "preguntas": []
+    }
+  ]
+}
