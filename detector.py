@@ -26,6 +26,7 @@ import numpy as np
 import argparse
 import json
 import time
+import requests
 from datetime import datetime
 from collections import defaultdict
 
@@ -306,6 +307,7 @@ def main():
 
     respuestas_acumuladas = {}  # Guarda la última respuesta de cada alumno
     modo_debug = args.debug
+    last_send = 0
 
     while True:
         ret, frame = cap.read()
@@ -318,6 +320,15 @@ def main():
 
         # Acumular respuestas (la última detección gana)
         respuestas_acumuladas.update(respuestas_actuales)
+
+        # Enviar respuestas a la web app cada segundo
+        current_time = time.time()
+        if current_time - last_send > 1:
+            try:
+                requests.post("http://localhost:5000/api/sesion/respuestas", json={"respuestas": respuestas_acumuladas}, timeout=0.5)
+                last_send = current_time
+            except:
+                pass
 
         # Dibujar detecciones sobre el frame
         frame = dibujar_detecciones(frame, corners, ids, respuestas_actuales)

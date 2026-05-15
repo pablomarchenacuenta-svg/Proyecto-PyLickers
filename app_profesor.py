@@ -21,6 +21,7 @@ from flask import Flask, render_template, jsonify, request, Response
 import json
 import os
 import argparse
+import subprocess
 from datetime import datetime
 
 app = Flask(__name__)
@@ -77,13 +78,16 @@ def api_juegos():
 def api_crear_juego():
     datos = cargar_datos()
     nuevo = request.json or {}
+    nombre = nuevo.get("nombre", "Juego sin nombre")
+    descripcion = nuevo.get("descripcion", "")
     juego = {
-        "nombre": nuevo.get("nombre", "Juego sin nombre"),
-        "descripcion": nuevo.get("descripcion", ""),
+        "nombre": nombre,
+        "descripcion": descripcion,
         "preguntas": []
     }
     datos["juegos"].append(juego)
     guardar_datos(datos)
+    print(f"Juego creado: {nombre}")
     return jsonify({"ok": True, "id": len(datos["juegos"]) - 1})
 
 
@@ -104,6 +108,7 @@ def api_crear_pregunta_en_juego(idx):
         pregunta = request.json or {}
         juegos[idx].setdefault("preguntas", []).append(pregunta)
         guardar_datos(datos)
+        print(f"Pregunta creada en juego {idx}: {pregunta.get('texto', '')}")
         return jsonify({"ok": True})
     return jsonify({"error": "Juego no encontrado"}), 404
 
@@ -183,6 +188,11 @@ def api_estado():
 @app.route("/api/sesion/iniciar", methods=["POST"])
 def api_iniciar():
     sesion_activa["activa"] = True
+    # Lanzar detector en background
+    try:
+        subprocess.Popen([os.sys.executable, "detector.py", "--alumnos", str(NUM_ALUMNOS)])
+    except Exception as e:
+        print(f"Error al lanzar detector: {e}")
     return jsonify({"ok": True})
 
 
@@ -232,6 +242,7 @@ def api_guardar_sesion():
     }
     datos.setdefault("sesiones", []).append(registro)
     guardar_datos(datos)
+    print(f"Sesión guardada: {len(respuestas)} respuestas")
     return jsonify({"ok": True})
 
 
@@ -241,6 +252,17 @@ def api_recibir_respuestas():
         nuevas = request.json.get("respuestas", {})
         sesion_activa["respuestas"].update(nuevas)
     return jsonify({"ok": True})
+
+
+@app.route("/api/sesiones")
+def api_sesiones():
+    datos = cargar_datos()
+    sesiones = datos.get("sesiones", [])
+    # Incluir nombres de alumnos en cada sesión
+    alumnos = datos.get("alumnos", {})
+    for sesion in sesiones:
+        sesion["alumnos"] = alumnos
+    return jsonify(sesiones)
 
 
 if __name__ == "__main__":

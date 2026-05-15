@@ -1,40 +1,167 @@
 {
-  "preguntas": [
+  "preguntas": [],
+  "sesiones": [
     {
-      "texto": "dfsfdsf",
-      "opciones": {
-        "A": "fdsaf",
-        "B": "fdsfdsa",
-        "C": "fdsafa",
-        "D": "fdsaf"
+      "timestamp": "2026-05-15T10:00:56.368570",
+      "juego": {
+        "id": 0,
+        "nombre": "General",
+        "descripcion": "Juego general"
       },
-      "correcta": "A"
+      "pregunta": {
+        "idx": 1,
+        "texto": "test2",
+        "correcta": "C",
+        "opciones": {
+          "A": "test2",
+          "B": "test2",
+          "C": "test2",
+          "D": "test2"
+        }
+      },
+      "respuestas": {
+        "25": "A",
+        "26": "B"
+      },
+      "alumnos": {
+        "0": {
+          "nombre": "test2"
+        },
+        "24": {
+          "nombre": "test"
+        },
+        "25": {
+          "nombre": "test3w4"
+        }
+      },
+      "total_respuestas": 2
+    },
+    {
+      "timestamp": "2026-05-15T10:03:39.711448",
+      "juego": {
+        "id": 0,
+        "nombre": "General",
+        "descripcion": "Juego general"
+      },
+      "pregunta": {
+        "idx": 0,
+        "texto": "test",
+        "correcta": "A",
+        "opciones": {
+          "A": "test",
+          "B": "test",
+          "C": "test",
+          "D": "test"
+        }
+      },
+      "respuestas": {
+        "17": "B",
+        "25": "D",
+        "26": "B"
+      },
+      "alumnos": {
+        "0": {
+          "nombre": "test2"
+        },
+        "24": {
+          "nombre": "test"
+        },
+        "25": {
+          "nombre": "test3w4"
+        }
+      },
+      "total_respuestas": 3
+    },
+    {
+      "timestamp": "2026-05-15T10:10:20.298975",
+      "juego": {
+        "id": 0,
+        "nombre": "General",
+        "descripcion": "Juego general"
+      },
+      "pregunta": {
+        "pregunta_idx": 0,
+        "texto": "test",
+        "correcta": "A",
+        "opciones": {
+          "A": "test",
+          "B": "test",
+          "C": "test",
+          "D": "test"
+        }
+      },
+      "respuestas": {
+        "17": "B",
+        "25": "D",
+        "26": "B"
+      },
+      "alumnos": {
+        "0": {
+          "nombre": "test2"
+        },
+        "1": {
+          "nombre": "Carlos"
+        },
+        "24": {
+          "nombre": "test"
+        },
+        "25": {
+          "nombre": "test3w4"
+        }
+      },
+      "total_respuestas": 3
     }
   ],
-  "sesiones": [],
-  "alumnos": {},
-  "respuestas_sesion": {},
+  "alumnos": {
+    "24": {
+      "nombre": "test"
+    },
+    "0": {
+      "nombre": "test2"
+    },
+    "25": {
+      "nombre": "test3w4"
+    },
+    "1": {
+      "nombre": "Carlos"
+    }
+  },
   "juegos": [
     {
-      "nombre": "Test",
-      "descripcion": "Test",
+      "nombre": "General",
+      "descripcion": "Juego general",
       "preguntas": [
         {
           "texto": "test",
           "opciones": {
             "A": "test",
             "B": "test",
-            "C": "ste",
-            "D": "testtes"
+            "C": "test",
+            "D": "test"
           },
           "correcta": "A"
+        },
+        {
+          "texto": "test2",
+          "opciones": {
+            "A": "test2",
+            "B": "test2",
+            "C": "test2",
+            "D": "test2"
+          },
+          "correcta": "C"
+        },
+        {
+          "texto": "test2",
+          "opciones": {
+            "A": "test2",
+            "B": "test2",
+            "C": "test2",
+            "D": "test2"
+          },
+          "correcta": "C"
         }
       ]
-    },
-    {
-      "nombre": "Quiz de Ciencias",
-      "descripcion": "Un conjunto de preguntas sobre ciencias naturales",
-      "preguntas": []
     },
     {
       "nombre": "test",

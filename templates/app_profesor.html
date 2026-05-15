@@ -35,7 +35,7 @@
         .header small { color: var(--text-dim); }
         .container {
             display: grid;
-            grid-template-columns: 1.4fr 1fr;
+            grid-template-columns: 1fr;
             gap: 1.25rem;
             padding: 1.25rem;
         }
@@ -44,6 +44,10 @@
             border: 1px solid rgba(255,255,255,0.08);
             border-radius: 16px;
             padding: 1.2rem;
+        }
+        .nav-card {
+            width: 100%;
+            margin: 0 auto;
         }
         .card h2 {
             font-size: 1.05rem;
@@ -79,13 +83,16 @@
         .btn-danger { background: var(--color-a); }
         .btn-group { display: flex; flex-wrap: wrap; gap: 0.7rem; }
         .small-note { color: var(--text-dim); font-size: 0.82rem; margin-top: 0.35rem; }
-        .panel-nav { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+        .panel-nav { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; }
         .panel-button {
+            flex: 1 1 150px;
+            min-width: 140px;
             border: 1px solid rgba(255,255,255,0.1);
             background: rgba(255,255,255,0.04);
             color: var(--text);
             border-radius: 14px;
             padding: 0.85rem 1rem;
+            text-align: center;
             cursor: pointer;
             font-weight: 700;
             transition: background 0.2s ease, transform 0.2s ease;
@@ -96,8 +103,6 @@
         .page-section.active { display: block; }
         .section-card-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
         .section-card-header h2 { margin: 0; }
-        .side-panel { display: grid; gap: 1rem; }
-        .side-panel .card { position: sticky; top: 1rem; }
         .student-grid.large { grid-template-columns: repeat(7, minmax(0,1fr)); }
         .student-cell { min-height: 100px; }
         .game-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.7rem; }
@@ -156,6 +161,8 @@
         .bar-fill.b { background: rgba(52,152,219,0.9); }
         .bar-fill.c { background: rgba(46,204,113,0.9); }
         .bar-fill.d { background: rgba(243,156,18,0.9); }
+        .results-table { display: grid; gap: 0.5rem; margin-top: 1rem; }
+        .result-row { padding: 0.5rem; background: rgba(255,255,255,0.03); border-radius: 8px; }
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 1000; justify-content: center; align-items: center; padding: 1rem; }
         .modal.visible { display: flex; }
         .modal-content { width: 100%; max-width: 420px; background: var(--card-bg); border-radius: 18px; padding: 1.4rem; border: 1px solid rgba(255,255,255,0.08); }
@@ -181,17 +188,14 @@
 
     <div class="container">
         <div class="main-panel">
-            <div class="card">
-                <div class="section-card-header">
-                    <div>
-                        <h2>Administración de clases</h2>
-                        <p class="small-note">Configura alumnos, crea juegos y pasa preguntas uno a uno.</p>
-                    </div>
+            <div class="card nav-card">
+                <div class="section-card-header" style="padding: 1rem 0;">
                     <div class="panel-nav">
                         <button class="panel-button active" id="tabGames" onclick="showSection('games')">Juegos</button>
                         <button class="panel-button" id="tabQuestions" onclick="showSection('questions')">Preguntas</button>
                         <button class="panel-button" id="tabStudents" onclick="showSection('students')">Alumnos</button>
                         <button class="panel-button" id="tabPlay" onclick="showSection('play')">Modo Juego</button>
+                        <button class="panel-button" id="tabResults" onclick="showSection('results')">Resultados</button>
                     </div>
                 </div>
             </div>
@@ -279,7 +283,7 @@
                     <div class="btn-group">
                         <button class="btn btn-secondary" onclick="asignarNumeros()">Asignar números</button>
                         <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">Importar TXT</button>
-                        <a id="exportLink" class="btn btn-secondary" href="/api/alumnos/exportar?max={{ num_alumnos }}">Exportar TXT</a>
+                        <a class="btn btn-secondary" href="/api/alumnos/exportar?max={{ num_alumnos }}">Exportar TXT</a>
                         <button class="btn btn-danger" onclick="resetearNombres()">Reset nombres</button>
                     </div>
                     <input type="file" id="importFile" accept=".txt" style="display:none;">
@@ -329,19 +333,16 @@
                     <div class="small-note">Recuerda seleccionar primero un juego y una pregunta en el panel de preguntas.</div>
                 </div>
             </div>
-        </div>
 
-        <div class="side-panel">
-            <div class="card">
-                <h2>Resumen rápido</h2>
-                <div class="small-note">Juego activo: <strong id="activeGameName">Ninguno</strong></div>
-                <div class="small-note">Pregunta actual: <strong id="activeQuestionLabel">-</strong></div>
-                <div class="small-note">Detectados: <span id="detectedCount">0</span>/<span id="totalAlumnos">{{ num_alumnos }}</span></div>
-                <div class="small-note">Escaneo: <span id="scanStatus">Detenido</span></div>
-                <div class="btn-group">
-                    <button class="btn btn-secondary" onclick="showSection('students')">Ir a alumnos</button>
-                    <button class="btn btn-secondary" onclick="showSection('questions')">Ir a preguntas</button>
-                    <button class="btn btn-secondary" onclick="showSection('play')">Ir a modo juego</button>
+            <div id="section-results" class="page-section">
+                <div class="card">
+                    <div class="section-card-header">
+                        <div>
+                            <h2>Resultados de juegos</h2>
+                            <p class="small-note">Historial de sesiones guardadas con respuestas por alumno.</p>
+                        </div>
+                    </div>
+                    <div id="resultsList"></div>
                 </div>
             </div>
         </div>
@@ -382,7 +383,8 @@
                 games: 'tabGames',
                 questions: 'tabQuestions',
                 students: 'tabStudents',
-                play: 'tabPlay'
+                play: 'tabPlay',
+                results: 'tabResults'
             };
             document.querySelectorAll('.panel-button').forEach(button => {
                 button.classList.toggle('active', button.id === map[name]);
@@ -391,6 +393,7 @@
             if (name === 'students') renderStudentGrid();
             if (name === 'questions') updateSelectedGameInfo();
             if (name === 'play') updatePlayView();
+            if (name === 'results') cargarResultados();
         }
 
         function cargarJuegos() {
@@ -469,15 +472,20 @@
             const nombre = document.getElementById('newGameName').value.trim();
             const descripcion = document.getElementById('newGameDescription').value.trim();
             if (!nombre) return alert('Ingresa un nombre de juego');
+            console.log('Creando juego:', nombre, descripcion);
             fetch('/api/juegos', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ nombre, descripcion })
             }).then(() => {
+                console.log('Juego creado exitosamente');
                 document.getElementById('newGameName').value = '';
                 document.getElementById('newGameDescription').value = '';
                 cargarJuegos();
                 showSection('games');
+            }).catch(err => {
+                console.log('Error al crear juego:', err);
+                alert('Error al crear juego: ' + err.message);
             });
         }
 
@@ -526,7 +534,6 @@
         function updateSelectedGameInfo() {
             const selectedGame = currentGame !== null ? juegos[currentGame] : null;
             document.getElementById('selectedGameName').value = selectedGame ? `${selectedGame.nombre || 'Juego'} — ${selectedGame.descripcion || ''}` : '';
-            document.getElementById('activeGameName').textContent = selectedGame ? (selectedGame.nombre || `Juego ${currentGame + 1}`) : 'Ninguno';
         }
 
         function mostrarPreguntaActual() {
@@ -540,7 +547,6 @@
                 text.textContent = 'Agrega preguntas en el editor y vuelve a modo juego.';
                 options.style.display = 'none';
                 results.style.display = 'none';
-                document.getElementById('activeQuestionLabel').textContent = '-';
                 return;
             }
 
@@ -555,7 +561,7 @@
                 <div class="option d"><span>D</span>${pregunta.opciones.D}</div>
             `;
             results.style.display = 'grid';
-            document.getElementById('activeQuestionLabel').textContent = pregunta.texto;
+
 
             fetch('/api/sesion/pregunta', {
                 method: 'POST',
@@ -584,21 +590,28 @@
                 correcta: document.getElementById('correctAnswer').value
             };
             if (!pregunta.texto) return alert('Completa la pregunta');
+            console.log('Guardando pregunta:', pregunta);
             fetch(`/api/juegos/${currentGame}/preguntas`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(pregunta)
             }).then(() => {
+                console.log('Pregunta guardada');
                 ['newQuestion', 'newOptA', 'newOptB', 'newOptC', 'newOptD'].forEach(id => document.getElementById(id).value = '');
                 cargarPreguntas();
                 showSection('questions');
+            }).catch(err => {
+                console.log('Error al guardar pregunta:', err);
+                alert('Error al guardar pregunta: ' + err.message);
             });
         }
 
         function guardarSesion() {
             if (currentGame === null || !preguntas.length) return alert('Selecciona un juego y pregunta antes de guardar.');
+            if (!Object.keys(respuestas).length) return alert('No hay respuestas para guardar. Escanea primero.');
             const pregunta = preguntas[preguntaActualIdx];
             const juego = juegos[currentGame] || {};
+            console.log('Guardando sesión con respuestas:', respuestas, 'Alumnos:', alumnosNombres);
             fetch('/api/sesion/guardar', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -609,21 +622,26 @@
                         descripcion: juego.descripcion,
                     },
                     pregunta: {
-                        idx: preguntaActualIdx,
+                        pregunta_idx: preguntaActualIdx,
                         texto: pregunta.texto,
                         correcta: pregunta.correcta,
                         opciones: pregunta.opciones,
                     },
-                    respuestas,
+                    respuestas: respuestas,
                     alumnos: alumnosNombres,
                 })
             }).then(r => r.json())
                 .then(data => {
+                    console.log('Respuesta del servidor:', data);
                     if (data.ok) {
                         alert('Resultados guardados correctamente.');
+                        resetRespuestas();
                     } else {
                         alert(data.error || 'No se pudieron guardar los resultados.');
                     }
+                }).catch(err => {
+                    console.log('Error al guardar sesión:', err);
+                    alert('Error al guardar sesión: ' + err.message);
                 });
         }
 
@@ -647,7 +665,6 @@
                 .then(data => {
                     alumnosNombres = data;
                     renderStudentGrid();
-                    document.getElementById('exportLink').href = `/api/alumnos/exportar?max=${numAlumnos}`;
                 });
         }
 
@@ -657,7 +674,7 @@
             grid.innerHTML = '';
             for (let i = 0; i < numAlumnos; i++) {
                 const cell = document.createElement('div');
-                const nombre = alumnosNombres[i]?.nombre || '';
+                const nombre = alumnosNombres[String(i)]?.nombre || '';
                 cell.className = 'student-cell';
                 cell.id = `student-${i}`;
                 cell.innerHTML = `<div class="id">#${i + 1}</div><div class="name">${nombre}</div>`;
@@ -686,7 +703,7 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ id: editorAlumnoId, nombre })
             }).then(() => {
-                alumnosNombres[editorAlumnoId] = { nombre };
+                alumnosNombres[String(editorAlumnoId)] = { nombre };
                 renderStudentGrid();
                 cerrarEditorNombre();
             });
@@ -719,7 +736,7 @@
             for (let i = 0; i < numAlumnos; i++) {
                 const cell = document.getElementById(`student-${i}`);
                 if (!cell) continue;
-                const nombre = alumnosNombres[i]?.nombre || '';
+                const nombre = alumnosNombres[String(i)]?.nombre || '';
                 cell.className = 'student-cell';
                 cell.innerHTML = `<div class="id">#${i + 1}</div><div class="name">${nombre}</div>`;
             }
@@ -728,12 +745,12 @@
                 const cell = document.getElementById(`student-${idx}`);
                 if (cell) {
                     cell.className = `student-cell answered ${resp.toLowerCase()}`;
-                    const nombre = alumnosNombres[idx]?.nombre || '';
+                    const nombre = alumnosNombres[String(idx)]?.nombre || '';
                     cell.innerHTML = `<div class="id">#${idx + 1}</div><div class="name">${nombre}</div>`;
                     conteo[resp] = (conteo[resp] || 0) + 1;
                 }
             }
-            document.getElementById('detectedCount').textContent = `${total}/${numAlumnos}`;
+
             ['A','B','C','D'].forEach(letra => {
                 const bar = document.getElementById(`playBar${letra}`) || document.getElementById(`bar${letra}`);
                 const count = document.getElementById(`playCount${letra}`) || document.getElementById(`count${letra}`);
@@ -750,21 +767,19 @@
             nuevoNum = Math.min(Math.max(nuevoNum, 1), 49);
             numAlumnos = nuevoNum;
             document.getElementById('numAlumnos').value = numAlumnos;
-            document.getElementById('exportLink').href = `/api/alumnos/exportar?max=${numAlumnos}`;
-            document.getElementById('totalAlumnos').textContent = numAlumnos;
             renderStudentGrid();
         }
 
         function iniciarEscaneo() {
-            fetch('/api/sesion/iniciar', { method: 'POST' });
-            polling = setInterval(actualizarRespuestas, 500);
-            document.getElementById('scanStatus').textContent = 'Activo';
+            fetch('/api/sesion/iniciar', { method: 'POST' })
+                .then(() => polling = setInterval(actualizarRespuestas, 500))
+                .catch(err => alert('Error al iniciar escaneo: ' + err.message));
         }
 
         function pararEscaneo() {
-            fetch('/api/sesion/parar', { method: 'POST' });
-            if (polling) clearInterval(polling);
-            document.getElementById('scanStatus').textContent = 'Detenido';
+            fetch('/api/sesion/parar', { method: 'POST' })
+                .then(() => { if (polling) clearInterval(polling); })
+                .catch(err => alert('Error al parar escaneo: ' + err.message));
         }
 
         function resetRespuestas() {
@@ -800,6 +815,40 @@
                     cargarNombresAlumnos();
                 });
         });
+
+        function cargarResultados() {
+            fetch('/api/sesiones')
+                .then(r => r.json())
+                .then(sesiones => {
+                    const list = document.getElementById('resultsList');
+                    list.innerHTML = '';
+                    if (!sesiones.length) {
+                        list.innerHTML = '<div class="small-note">No hay resultados guardados aún.</div>';
+                        return;
+                    }
+                    sesiones.forEach((sesion, idx) => {
+                        const item = document.createElement('div');
+                        item.className = 'card';
+                        const preguntaIdx = sesion.pregunta.pregunta_idx !== undefined ? sesion.pregunta.pregunta_idx : sesion.pregunta.idx;
+                        const preguntaTexto = sesion.pregunta.texto;
+                        const correcta = sesion.pregunta.correcta;
+                        item.innerHTML = `
+                            <h3>${sesion.juego.nombre || 'Juego'} - Pregunta ${preguntaIdx + 1}</h3>
+                            <p><strong>${preguntaTexto}</strong></p>
+                            <p style="color: green; font-size: 0.9em;">Respuesta correcta: <strong>${correcta}</strong></p>
+                            <div class="results-table">
+                                ${Object.entries(sesion.respuestas).map(([id, resp]) => {
+                                    const nombre = sesion.alumnos[id]?.nombre || `Alumno ${id}`;
+                                    const correcto = resp === correcta ? '✓' : '✗';
+                                    const color = resp === correcta ? 'color: green;' : 'color: red;';
+                                    return `<div class="result-row" style="${color}">${nombre}: ${resp} ${correcto}</div>`;
+                                }).join('')}
+                            </div>
+                        `;
+                        list.appendChild(item);
+                    });
+                });
+        }
 
         showSection('games');
         cargarJuegos();
