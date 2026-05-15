@@ -1,120 +1,9 @@
 {
   "preguntas": [],
-  "sesiones": [
-    {
-      "timestamp": "2026-05-15T10:00:56.368570",
-      "juego": {
-        "id": 0,
-        "nombre": "General",
-        "descripcion": "Juego general"
-      },
-      "pregunta": {
-        "idx": 1,
-        "texto": "test2",
-        "correcta": "C",
-        "opciones": {
-          "A": "test2",
-          "B": "test2",
-          "C": "test2",
-          "D": "test2"
-        }
-      },
-      "respuestas": {
-        "25": "A",
-        "26": "B"
-      },
-      "alumnos": {
-        "0": {
-          "nombre": "test2"
-        },
-        "24": {
-          "nombre": "test"
-        },
-        "25": {
-          "nombre": "test3w4"
-        }
-      },
-      "total_respuestas": 2
-    },
-    {
-      "timestamp": "2026-05-15T10:03:39.711448",
-      "juego": {
-        "id": 0,
-        "nombre": "General",
-        "descripcion": "Juego general"
-      },
-      "pregunta": {
-        "idx": 0,
-        "texto": "test",
-        "correcta": "A",
-        "opciones": {
-          "A": "test",
-          "B": "test",
-          "C": "test",
-          "D": "test"
-        }
-      },
-      "respuestas": {
-        "17": "B",
-        "25": "D",
-        "26": "B"
-      },
-      "alumnos": {
-        "0": {
-          "nombre": "test2"
-        },
-        "24": {
-          "nombre": "test"
-        },
-        "25": {
-          "nombre": "test3w4"
-        }
-      },
-      "total_respuestas": 3
-    },
-    {
-      "timestamp": "2026-05-15T10:10:20.298975",
-      "juego": {
-        "id": 0,
-        "nombre": "General",
-        "descripcion": "Juego general"
-      },
-      "pregunta": {
-        "pregunta_idx": 0,
-        "texto": "test",
-        "correcta": "A",
-        "opciones": {
-          "A": "test",
-          "B": "test",
-          "C": "test",
-          "D": "test"
-        }
-      },
-      "respuestas": {
-        "17": "B",
-        "25": "D",
-        "26": "B"
-      },
-      "alumnos": {
-        "0": {
-          "nombre": "test2"
-        },
-        "1": {
-          "nombre": "Carlos"
-        },
-        "24": {
-          "nombre": "test"
-        },
-        "25": {
-          "nombre": "test3w4"
-        }
-      },
-      "total_respuestas": 3
-    }
-  ],
+  "sesiones": [],
   "alumnos": {
     "24": {
-      "nombre": "test"
+      "nombre": "Alumno 25"
     },
     "0": {
       "nombre": "test2"
@@ -123,7 +12,25 @@
       "nombre": "test3w4"
     },
     "1": {
-      "nombre": "Carlos"
+      "nombre": "Alumno 2"
+    },
+    "3": {
+      "nombre": "Alumno 4"
+    },
+    "9": {
+      "nombre": "Alumno 10"
+    },
+    "10": {
+      "nombre": "Alumno 11"
+    },
+    "12": {
+      "nombre": "Alumno 13"
+    },
+    "16": {
+      "nombre": "Alumno 17"
+    },
+    "17": {
+      "nombre": "Alumno 18"
     }
   },
   "juegos": [
@@ -166,6 +73,31 @@
     {
       "nombre": "test",
       "descripcion": "test",
+      "preguntas": [
+        {
+          "texto": "test",
+          "opciones": {
+            "A": "test",
+            "B": "tset",
+            "C": "test",
+            "D": "test"
+          },
+          "correcta": "B"
+        }
+      ]
+    },
+    {
+      "nombre": "test",
+      "descripcion": "test",
+      "preguntas": []
+    },
+    {
+      "nombre": "test",
+      "descripcion": "test",
+      "preguntas": []
+    }
+  ]
+}"test",
       "preguntas": []
     }
   ]

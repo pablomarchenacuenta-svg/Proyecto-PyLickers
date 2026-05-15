@@ -3,36 +3,60 @@
 PyLickers - INTERFAZ WEB DEL PROFESOR
 ======================================
 Aplicación Flask que proporciona:
-- Gestión de preguntas (crear, editar, eliminar)
+- Gestión de juegos y preguntas
+- Gestión de alumnos con import/export
 - Vista de resultados en tiempo real
-- Historial de sesiones
 - API para comunicarse con el detector
 
 Uso:
     python app_profesor.py              # Arrancar en http://localhost:5000
     python app_profesor.py --port 8080  # Puerto personalizado
+    python app_profesor.py --alumnos 25  # Número máximo de alumnos (1-49)
 
 Requisitos:
     pip install flask
 """
 
-from flask import Flask, render_template_string, jsonify, request
+from flask import Flask, render_template, jsonify, request, Response, send_file
 import json
 import os
 import argparse
+import subprocess
 from datetime import datetime
+import io
+import zipfile
+import signal
+
+try:
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    import matplotlib.colors as mcolors
+    import numpy as np
+except Exception:
+    plt = None
+    mcolors = None
+    np = None
 
 app = Flask(__name__)
 
-# ── Almacenamiento simple en JSON ────────────────────────────────
+# ── Configuración ────────────────────────────────
+NUM_ALUMNOS = 30  # Número máximo de alumnos, configurable por argumento
 DATA_FILE = "pylickers_data.json"
 
 
 def cargar_datos():
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {"preguntas": [], "sesiones": [], "alumnos": {}}
+            datos = json.load(f)
+    else:
+        datos = {}
+
+    datos.setdefault("preguntas", [])
+    datos.setdefault("sesiones", [])
+    datos.setdefault("alumnos", {})
+    datos.setdefault("juegos", [{"nombre": "General", "descripcion": "Juego general", "preguntas": []}])
+    return datos
 
 
 def guardar_datos(datos):
@@ -47,474 +71,132 @@ sesion_activa = {
     "activa": False,
 }
 
+# Proceso del detector (si se lanza desde la web)
+detector_proc = None
+
 
 # ══════════════════════════════════════════════════════════════════
-# PLANTILLA HTML (todo en un archivo para simplicidad del prototipo)
-# ══════════════════════════════════════════════════════════════════
-
-HTML_TEMPLATE = """
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PyLickers - Panel del Profesor</title>
-    <style>
-        :root {
-            --color-a: #E74C3C;
-            --color-b: #3498DB;
-            --color-c: #2ECC71;
-            --color-d: #F39C12;
-            --bg: #1a1a2e;
-            --card-bg: #16213e;
-            --text: #eee;
-            --text-dim: #888;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-        }
-        .header {
-            background: var(--card-bg);
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #0f3460;
-        }
-        .header h1 { font-size: 1.5rem; }
-        .header h1 span { color: var(--color-b); }
-        .status { display: flex; align-items: center; gap: 8px; }
-        .status-dot {
-            width: 12px; height: 12px; border-radius: 50%;
-            background: #e74c3c;
-        }
-        .status-dot.active { background: #2ecc71; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-
-        .container { display: grid; grid-template-columns: 1fr 350px; gap: 1.5rem; padding: 1.5rem; }
-
-        /* Panel principal */
-        .main-panel { display: flex; flex-direction: column; gap: 1.5rem; }
-        .card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 1.5rem;
-            border: 1px solid #0f3460;
-        }
-        .card h2 { margin-bottom: 1rem; font-size: 1.1rem; color: var(--color-b); }
-
-        /* Pregunta actual */
-        .question-display {
-            font-size: 1.4rem;
-            text-align: center;
-            padding: 2rem;
-            background: linear-gradient(135deg, #0f3460, #16213e);
-            border-radius: 12px;
-            border: 2px solid #0f3460;
-        }
-        .question-display .number { color: var(--text-dim); font-size: 0.9rem; }
-        .options { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-top: 1.5rem; }
-        .option {
-            padding: 0.8rem;
-            border-radius: 8px;
-            font-size: 1rem;
-            text-align: center;
-            position: relative;
-        }
-        .option.a { background: var(--color-a); }
-        .option.b { background: var(--color-b); }
-        .option.c { background: var(--color-c); }
-        .option.d { background: var(--color-d); }
-        .option .count {
-            position: absolute;
-            top: 5px;
-            right: 10px;
-            background: rgba(0,0,0,0.3);
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.75rem;
-        }
-
-        /* Barras de resultados */
-        .results-bars { display: flex; flex-direction: column; gap: 8px; margin-top: 1rem; }
-        .bar-row { display: flex; align-items: center; gap: 10px; }
-        .bar-label { width: 25px; font-weight: bold; font-size: 1.1rem; }
-        .bar-track { flex: 1; height: 28px; background: #0a0a1a; border-radius: 6px; overflow: hidden; }
-        .bar-fill {
-            height: 100%;
-            border-radius: 6px;
-            transition: width 0.5s ease;
-            display: flex;
-            align-items: center;
-            padding-left: 10px;
-            font-size: 0.8rem;
-            font-weight: bold;
-        }
-        .bar-fill.a { background: var(--color-a); }
-        .bar-fill.b { background: var(--color-b); }
-        .bar-fill.c { background: var(--color-c); }
-        .bar-fill.d { background: var(--color-d); }
-
-        /* Grid de alumnos */
-        .student-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 6px;
-        }
-        .student-cell {
-            aspect-ratio: 1;
-            border-radius: 6px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            background: #2a2a3e;
-            transition: all 0.3s;
-        }
-        .student-cell.answered { color: white; font-weight: bold; font-size: 0.9rem; }
-        .student-cell.a { background: var(--color-a); }
-        .student-cell.b { background: var(--color-b); }
-        .student-cell.c { background: var(--color-c); }
-        .student-cell.d { background: var(--color-d); }
-        .student-cell .id { font-size: 0.65rem; opacity: 0.7; }
-
-        /* Formulario de preguntas */
-        .form-group { margin-bottom: 1rem; }
-        .form-group label { display: block; margin-bottom: 4px; color: var(--text-dim); font-size: 0.85rem; }
-        .form-group input, .form-group textarea {
-            width: 100%;
-            padding: 8px 12px;
-            background: #0a0a1a;
-            border: 1px solid #0f3460;
-            border-radius: 6px;
-            color: var(--text);
-            font-size: 0.95rem;
-        }
-        .form-group textarea { resize: vertical; min-height: 60px; }
-        .option-input { display: flex; gap: 8px; align-items: center; }
-        .option-input .letter {
-            width: 30px; height: 30px; border-radius: 6px; display: flex;
-            align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;
-        }
-        .btn {
-            padding: 8px 18px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 600;
-            transition: transform 0.1s;
-        }
-        .btn:active { transform: scale(0.97); }
-        .btn-primary { background: var(--color-b); color: white; }
-        .btn-success { background: var(--color-c); color: white; }
-        .btn-danger { background: var(--color-a); color: white; }
-        .btn-warning { background: var(--color-d); color: white; }
-        .btn-group { display: flex; gap: 8px; margin-top: 1rem; }
-
-        /* Lista de preguntas */
-        .question-list { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
-        .question-item {
-            padding: 10px;
-            background: #0a0a1a;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: background 0.2s;
-        }
-        .question-item:hover { background: #0f3460; }
-        .question-item.active { border-left: 3px solid var(--color-b); }
-        .question-item .q-text { font-size: 0.85rem; flex: 1; }
-        .question-item .q-correct { font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; }
-
-        .empty-state { text-align: center; padding: 2rem; color: var(--text-dim); }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>Py<span>Lickers</span></h1>
-        <div class="status">
-            <div class="status-dot" id="statusDot"></div>
-            <span id="statusText">Desconectado</span>
-        </div>
-    </div>
-
-    <div class="container">
-        <div class="main-panel">
-            <!-- Pregunta actual -->
-            <div class="card">
-                <h2>Pregunta Actual</h2>
-                <div class="question-display" id="questionDisplay">
-                    <div class="number" id="questionNumber"></div>
-                    <div id="questionText">Selecciona una pregunta para empezar</div>
-                    <div class="options" id="questionOptions" style="display:none;">
-                        <div class="option a"><span class="count" id="countA">0</span>A: <span id="optA"></span></div>
-                        <div class="option b"><span class="count" id="countB">0</span>B: <span id="optB"></span></div>
-                        <div class="option c"><span class="count" id="countC">0</span>C: <span id="optC"></span></div>
-                        <div class="option d"><span class="count" id="countD">0</span>D: <span id="optD"></span></div>
-                    </div>
-                </div>
-
-                <!-- Resultados -->
-                <div class="results-bars" id="resultsBars" style="display:none;">
-                    <div class="bar-row">
-                        <span class="bar-label" style="color:var(--color-a)">A</span>
-                        <div class="bar-track"><div class="bar-fill a" id="barA" style="width:0%"></div></div>
-                    </div>
-                    <div class="bar-row">
-                        <span class="bar-label" style="color:var(--color-b)">B</span>
-                        <div class="bar-track"><div class="bar-fill b" id="barB" style="width:0%"></div></div>
-                    </div>
-                    <div class="bar-row">
-                        <span class="bar-label" style="color:var(--color-c)">C</span>
-                        <div class="bar-track"><div class="bar-fill c" id="barC" style="width:0%"></div></div>
-                    </div>
-                    <div class="bar-row">
-                        <span class="bar-label" style="color:var(--color-d)">D</span>
-                        <div class="bar-track"><div class="bar-fill d" id="barD" style="width:0%"></div></div>
-                    </div>
-                </div>
-
-                <div class="btn-group">
-                    <button class="btn btn-success" onclick="iniciarEscaneo()">Iniciar Escaneo</button>
-                    <button class="btn btn-danger" onclick="pararEscaneo()">Parar</button>
-                    <button class="btn btn-warning" onclick="resetRespuestas()">Reset</button>
-                </div>
-            </div>
-
-            <!-- Crear pregunta -->
-            <div class="card">
-                <h2>Crear Pregunta</h2>
-                <div class="form-group">
-                    <label>Enunciado:</label>
-                    <textarea id="newQuestion" placeholder="Escribe la pregunta..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Opciones:</label>
-                    <div style="display:flex;flex-direction:column;gap:6px;">
-                        <div class="option-input">
-                            <div class="letter" style="background:var(--color-a)">A</div>
-                            <input id="newOptA" placeholder="Opción A">
-                        </div>
-                        <div class="option-input">
-                            <div class="letter" style="background:var(--color-b)">B</div>
-                            <input id="newOptB" placeholder="Opción B">
-                        </div>
-                        <div class="option-input">
-                            <div class="letter" style="background:var(--color-c)">C</div>
-                            <input id="newOptC" placeholder="Opción C">
-                        </div>
-                        <div class="option-input">
-                            <div class="letter" style="background:var(--color-d)">D</div>
-                            <input id="newOptD" placeholder="Opción D">
-                        </div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Respuesta correcta:</label>
-                    <div style="display:flex;gap:8px;">
-                        <label><input type="radio" name="correct" value="A"> A</label>
-                        <label><input type="radio" name="correct" value="B"> B</label>
-                        <label><input type="radio" name="correct" value="C"> C</label>
-                        <label><input type="radio" name="correct" value="D"> D</label>
-                    </div>
-                </div>
-                <button class="btn btn-primary" onclick="guardarPregunta()">Guardar Pregunta</button>
-            </div>
-        </div>
-
-        <!-- Panel lateral -->
-        <div>
-            <!-- Grid de alumnos -->
-            <div class="card">
-                <h2>Alumnos (<span id="detectedCount">0</span>/{{ num_alumnos }})</h2>
-                <div class="student-grid" id="studentGrid">
-                    {% for i in range(num_alumnos) %}
-                    <div class="student-cell" id="student-{{ i }}">
-                        <div class="id">#{{ i }}</div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- Lista de preguntas -->
-            <div class="card" style="margin-top: 1.5rem;">
-                <h2>Preguntas ({{ preguntas|length }})</h2>
-                <div class="question-list" id="questionList">
-                    {% if preguntas %}
-                        {% for p in preguntas %}
-                        <div class="question-item" onclick="seleccionarPregunta({{ loop.index0 }})">
-                            <span class="q-text">{{ loop.index }}. {{ p.texto[:50] }}...</span>
-                            <span class="q-correct" style="background:var(--color-{{ p.correcta|lower }})">{{ p.correcta }}</span>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="empty-state">No hay preguntas aún</div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let preguntaActual = null;
-        let respuestas = {};
-        let polling = null;
-
-        function seleccionarPregunta(idx) {
-            fetch(`/api/pregunta/${idx}`)
-                .then(r => r.json())
-                .then(p => {
-                    preguntaActual = p;
-                    document.getElementById('questionNumber').textContent = `Pregunta ${idx + 1}`;
-                    document.getElementById('questionText').textContent = p.texto;
-                    document.getElementById('questionOptions').style.display = 'grid';
-                    document.getElementById('optA').textContent = p.opciones.A;
-                    document.getElementById('optB').textContent = p.opciones.B;
-                    document.getElementById('optC').textContent = p.opciones.C;
-                    document.getElementById('optD').textContent = p.opciones.D;
-                    document.getElementById('resultsBars').style.display = 'flex';
-                    resetRespuestas();
-                });
-        }
-
-        function guardarPregunta() {
-            const correcta = document.querySelector('input[name="correct"]:checked');
-            if (!correcta) { alert('Selecciona la respuesta correcta'); return; }
-
-            const data = {
-                texto: document.getElementById('newQuestion').value,
-                opciones: {
-                    A: document.getElementById('newOptA').value,
-                    B: document.getElementById('newOptB').value,
-                    C: document.getElementById('newOptC').value,
-                    D: document.getElementById('newOptD').value,
-                },
-                correcta: correcta.value
-            };
-
-            fetch('/api/preguntas', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
-            }).then(() => location.reload());
-        }
-
-        function iniciarEscaneo() {
-            fetch('/api/sesion/iniciar', { method: 'POST' });
-            document.getElementById('statusDot').classList.add('active');
-            document.getElementById('statusText').textContent = 'Escaneando...';
-
-            // Polling cada 500ms para actualizar respuestas
-            polling = setInterval(actualizarRespuestas, 500);
-        }
-
-        function pararEscaneo() {
-            fetch('/api/sesion/parar', { method: 'POST' });
-            document.getElementById('statusDot').classList.remove('active');
-            document.getElementById('statusText').textContent = 'Detenido';
-            if (polling) clearInterval(polling);
-        }
-
-        function resetRespuestas() {
-            fetch('/api/sesion/reset', { method: 'POST' });
-            respuestas = {};
-            actualizarUI();
-        }
-
-        function actualizarRespuestas() {
-            fetch('/api/sesion/estado')
-                .then(r => r.json())
-                .then(data => {
-                    respuestas = data.respuestas;
-                    actualizarUI();
-                });
-        }
-
-        function actualizarUI() {
-            const total = Object.keys(respuestas).length;
-            const conteo = { A: 0, B: 0, C: 0, D: 0 };
-
-            // Reset grid
-            for (let i = 0; i < {{ num_alumnos }}; i++) {
-                const cell = document.getElementById(`student-${i}`);
-                cell.className = 'student-cell';
-                cell.innerHTML = `<div class="id">#${i}</div>`;
-            }
-
-            // Actualizar celdas con respuestas
-            for (const [id, resp] of Object.entries(respuestas)) {
-                const cell = document.getElementById(`student-${id}`);
-                if (cell) {
-                    cell.className = `student-cell answered ${resp.toLowerCase()}`;
-                    cell.innerHTML = `${resp}<div class="id">#${id}</div>`;
-                    conteo[resp]++;
-                }
-            }
-
-            document.getElementById('detectedCount').textContent = total;
-
-            // Barras y contadores
-            for (const letra of ['A', 'B', 'C', 'D']) {
-                const pct = total > 0 ? (conteo[letra] / total * 100) : 0;
-                const bar = document.getElementById(`bar${letra}`);
-                bar.style.width = `${pct}%`;
-                bar.textContent = pct > 5 ? `${conteo[letra]} (${pct.toFixed(0)}%)` : '';
-                document.getElementById(`count${letra}`).textContent = conteo[letra];
-            }
-        }
-    </script>
-</body>
-</html>
-"""
-
-
 # ══════════════════════════════════════════════════════════════════
 # RUTAS
 # ══════════════════════════════════════════════════════════════════
 
 @app.route("/")
 def index():
+    return render_template("app_profesor.html", num_alumnos=NUM_ALUMNOS)
+
+
+@app.route("/api/juegos", methods=["GET"])
+def api_juegos():
     datos = cargar_datos()
-    return render_template_string(
-        HTML_TEMPLATE,
-        preguntas=datos["preguntas"],
-        num_alumnos=NUM_ALUMNOS,
-    )
+    return jsonify(datos["juegos"])
 
 
-@app.route("/api/preguntas", methods=["GET"])
-def api_preguntas():
+@app.route("/api/juegos", methods=["POST"])
+def api_crear_juego():
     datos = cargar_datos()
-    return jsonify(datos["preguntas"])
-
-
-@app.route("/api/preguntas", methods=["POST"])
-def api_crear_pregunta():
-    datos = cargar_datos()
-    nueva = request.json
-    datos["preguntas"].append(nueva)
+    nuevo = request.json or {}
+    nombre = nuevo.get("nombre", "Juego sin nombre")
+    descripcion = nuevo.get("descripcion", "")
+    juego = {
+        "nombre": nombre,
+        "descripcion": descripcion,
+        "preguntas": []
+    }
+    datos["juegos"].append(juego)
     guardar_datos(datos)
-    return jsonify({"ok": True, "id": len(datos["preguntas"]) - 1})
+    print(f"Juego creado: {nombre}")
+    return jsonify({"ok": True, "id": len(datos["juegos"]) - 1})
 
 
-@app.route("/api/pregunta/<int:idx>")
-def api_pregunta(idx):
+@app.route("/api/juegos/<int:idx>/preguntas", methods=["GET"])
+def api_preguntas_juego(idx):
     datos = cargar_datos()
-    if 0 <= idx < len(datos["preguntas"]):
-        return jsonify(datos["preguntas"][idx])
-    return jsonify({"error": "No encontrada"}), 404
+    juegos = datos["juegos"]
+    if 0 <= idx < len(juegos):
+        return jsonify(juegos[idx].get("preguntas", []))
+    return jsonify({"error": "Juego no encontrado"}), 404
 
 
-# ── API de sesión (el detector envía datos aquí) ──
+@app.route("/api/juegos/<int:idx>/preguntas", methods=["POST"])
+def api_crear_pregunta_en_juego(idx):
+    datos = cargar_datos()
+    juegos = datos["juegos"]
+    if 0 <= idx < len(juegos):
+        pregunta = request.json or {}
+        juegos[idx].setdefault("preguntas", []).append(pregunta)
+        guardar_datos(datos)
+        print(f"Pregunta creada en juego {idx}: {pregunta.get('texto', '')}")
+        return jsonify({"ok": True})
+    return jsonify({"error": "Juego no encontrado"}), 404
 
+
+@app.route("/api/alumnos", methods=["GET"])
+def api_alumnos():
+    datos = cargar_datos()
+    return jsonify(datos.get("alumnos", {}))
+
+
+@app.route("/api/alumnos/asignar-nombre", methods=["POST"])
+def api_asignar_nombre():
+    datos = cargar_datos()
+    data = request.json or {}
+    id_alumno = data.get("id")
+    nombre = (data.get("nombre") or "").strip()
+    if id_alumno is None or not isinstance(id_alumno, int):
+        return jsonify({"error": "ID de alumno inválido"}), 400
+    datos.setdefault("alumnos", {})
+    datos["alumnos"][str(id_alumno)] = {"nombre": nombre}
+    guardar_datos(datos)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/alumnos/reset", methods=["POST"])
+def api_reset_alumnos():
+    datos = cargar_datos()
+    datos["alumnos"] = {}
+    guardar_datos(datos)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/alumnos/importar", methods=["POST"])
+def api_importar_alumnos():
+    datos = cargar_datos()
+    if "file" not in request.files:
+        return jsonify({"error": "No se encontró el archivo"}), 400
+    archivo = request.files["file"]
+    if archivo.filename == "":
+        return jsonify({"error": "Archivo vacío"}), 400
+    if not archivo.filename.lower().endswith(".txt"):
+        return jsonify({"error": "Solo archivos .txt"}), 400
+    max_alumnos = min(max(int(request.args.get("max", NUM_ALUMNOS)), 1), 49)
+    try:
+        content = archivo.read().decode("utf-8")
+        lines = [line.strip() for line in content.splitlines() if line.strip()]
+        datos.setdefault("alumnos", {})
+        imported = 0
+        for i, nombre in enumerate(lines[:max_alumnos]):
+            datos["alumnos"][str(i)] = {"nombre": nombre}
+            imported += 1
+        guardar_datos(datos)
+        return jsonify({"imported": imported})
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.route("/api/alumnos/exportar", methods=["GET"])
+def api_exportar_alumnos():
+    datos = cargar_datos()
+    alumnos = datos.get("alumnos", {})
+    max_alumnos = min(max(int(request.args.get("max", NUM_ALUMNOS)), 1), 49)
+    output = []
+    for i in range(max_alumnos):
+        output.append(alumnos.get(str(i), {}).get("nombre", ""))
+    response = Response("\n".join(output), mimetype="text/plain")
+    response.headers["Content-Disposition"] = "attachment; filename=alumnos.txt"
+    return response
+
+
+# ── API de sesión (el detector envía datos aquí) ───
 @app.route("/api/sesion/estado")
 def api_estado():
     return jsonify(sesion_activa)
@@ -523,42 +205,284 @@ def api_estado():
 @app.route("/api/sesion/iniciar", methods=["POST"])
 def api_iniciar():
     sesion_activa["activa"] = True
+    # Lanzar detector en background
+    try:
+        global detector_proc
+        if detector_proc is not None and detector_proc.poll() is None:
+            return jsonify({"ok": True, "msg": "Detector ya en ejecución"})
+
+        # Use process group to allow termination
+        kwargs = {}
+        if os.name == 'nt':
+            kwargs['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
+
+        detector_proc = subprocess.Popen([os.sys.executable, "detector.py", "--alumnos", str(NUM_ALUMNOS)], **kwargs)
+    except Exception as e:
+        print(f"Error al lanzar detector: {e}")
     return jsonify({"ok": True})
 
 
 @app.route("/api/sesion/parar", methods=["POST"])
 def api_parar():
     sesion_activa["activa"] = False
+    global detector_proc
+    if detector_proc is not None:
+        try:
+            # Try graceful termination
+            detector_proc.terminate()
+            detector_proc.wait(timeout=2)
+        except Exception:
+            try:
+                detector_proc.kill()
+            except Exception:
+                pass
+        detector_proc = None
     return jsonify({"ok": True})
+
+
+@app.route('/api/resultados/juego/<int:idx>')
+def api_resultados_juego(idx):
+    datos = cargar_datos()
+    juegos = datos.get('juegos', [])
+    sesiones = datos.get('sesiones', [])
+    if idx < 0 or idx >= len(juegos):
+        return jsonify({'error': 'Juego no encontrado'}), 404
+
+    juego = juegos[idx]
+    preguntas = juego.get('preguntas', [])
+    total_students = NUM_ALUMNOS
+
+    resultados = []
+    # Para cada pregunta, buscar la última sesión guardada de ese juego+pregunta
+    for qidx, pregunta in enumerate(preguntas):
+        last = None
+        for s in reversed(sesiones):
+            sj = s.get('juego', {})
+            sp = s.get('pregunta', {})
+            if sj.get('id') == idx and sp.get('pregunta_idx') == qidx:
+                last = s
+                break
+
+        conteo = { 'A': 0, 'B': 0, 'C': 0, 'D': 0 }
+        total_respuestas = 0
+        alumnos = {}
+        respuestas = {}
+        if last:
+            respuestas = last.get('respuestas', {})
+            alumnos = last.get('alumnos', {})
+            for v in respuestas.values():
+                if v in conteo:
+                    conteo[v] += 1
+                    total_respuestas += 1
+
+        porcentajes = {}
+        for k in ['A','B','C','D']:
+            # porcentaje respecto al total de alumnos configurados
+            pct = (conteo[k] / total_students) * 100 if total_students > 0 else 0
+            porcentajes[k] = round(pct, 1)
+
+        resultados.append({
+            'pregunta_idx': qidx,
+            'texto': pregunta.get('texto'),
+            'conteo': conteo,
+            'porcentajes': porcentajes,
+            'total_respuestas': total_respuestas,
+            'last_session': last,
+        })
+
+    return jsonify({'juego': {'id': idx, 'nombre': juego.get('nombre')}, 'resultados': resultados})
+
+
+@app.route('/api/resultados/clear', methods=['POST'])
+def api_resultados_clear():
+    datos = cargar_datos()
+    sesiones = datos.get('sesiones', [])
+    data = request.json or {}
+    game = data.get('game')
+    removed = 0
+    if game is None:
+        removed = len(sesiones)
+        datos['sesiones'] = []
+    else:
+        nuevas = [s for s in sesiones if s.get('juego', {}).get('id') != int(game)]
+        removed = len(sesiones) - len(nuevas)
+        datos['sesiones'] = nuevas
+    guardar_datos(datos)
+    return jsonify({'ok': True, 'removed': removed})
+
+
+@app.route('/api/resultados/export')
+def api_resultados_export():
+    if plt is None or np is None:
+        return jsonify({'error': 'matplotlib o numpy no disponible. Instala las dependencias en el entorno.'}), 500
+
+    game = request.args.get('game')
+    if game is None:
+        return jsonify({'error': 'Parámetro game requerido'}), 400
+    try:
+        game = int(game)
+    except Exception:
+        return jsonify({'error': 'Parámetro game inválido'}), 400
+
+    datos = cargar_datos()
+    juegos = datos.get('juegos', [])
+    sesiones = [s for s in datos.get('sesiones', []) if s.get('juego', {}).get('id') == game]
+    if game < 0 or game >= len(juegos):
+        return jsonify({'error': 'Juego no encontrado'}), 404
+
+    juego = juegos[game]
+    preguntas = juego.get('preguntas', [])
+
+    n_q = len(preguntas)
+    n_s = NUM_ALUMNOS
+
+    # Construir matriz (n_s x n_q) con códigos: A=0,B=1,C=2,D=3, MISSING=4
+    code_map = {'A':0,'B':1,'C':2,'D':3}
+    mat = np.full((n_s, n_q), 4, dtype=int)
+
+    for qidx in range(n_q):
+        last = None
+        for s in reversed(sesiones):
+            sp = s.get('pregunta', {})
+            if sp.get('pregunta_idx') == qidx:
+                last = s
+                break
+        if last:
+            resp = last.get('respuestas', {})
+            for sid, letter in resp.items():
+                try:
+                    i = int(sid)
+                    if 0 <= i < n_s and letter in code_map:
+                        mat[i, qidx] = code_map[letter]
+                except Exception:
+                    continue
+
+    # Crear figura heatmap
+    colors = ['#E74C3C','#3498DB','#2ECC71','#F39C12','#2b2b2b']
+    cmap = mcolors.ListedColormap(colors)
+
+    fig, ax = plt.subplots(figsize=(max(6, n_q*0.8), max(6, n_s*0.12)))
+    im = ax.imshow(mat, cmap=cmap, aspect='auto', vmin=0, vmax=4)
+    ax.set_xlabel('Preguntas')
+    ax.set_ylabel('Alumnos')
+    ax.set_xticks(range(n_q))
+    ax.set_xticklabels([str(i+1) for i in range(n_q)])
+    ax.set_yticks(range(n_s))
+    datos_global = cargar_datos()
+    alumnos_global = datos_global.get('alumnos', {})
+    y_labels = [alumnos_global.get(str(i), {}).get('nombre', f'Alumno {i}') for i in range(n_s)]
+    ax.set_yticklabels(y_labels)
+    cbar = fig.colorbar(im, ax=ax, ticks=[0,1,2,3,4])
+    cbar.ax.set_yticklabels(['A','B','C','D','-'])
+    ax.set_title(f"{juego.get('nombre','Juego')} - Respuestas por alumno (última por pregunta)")
+    plt.tight_layout()
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png')
+    plt.close(fig)
+    buf.seek(0)
+
+    # CSV
+    import csv
+    csv_buf = io.StringIO()
+    writer = csv.writer(csv_buf)
+    header = ['Alumno'] + [f'P{q+1}' for q in range(n_q)]
+    writer.writerow(header)
+    for i in range(n_s):
+        row = [alumnos_global.get(str(i), {}).get('nombre', f'Alumno {i}')]
+        for q in range(n_q):
+            val = mat[i, q]
+            if val == 4:
+                row.append('')
+            else:
+                row.append(['A','B','C','D'][int(val)])
+        writer.writerow(row)
+    csv_bytes = csv_buf.getvalue().encode('utf-8')
+
+    mem = io.BytesIO()
+    with zipfile.ZipFile(mem, 'w') as z:
+        z.writestr('respuestas_por_alumno.png', buf.read())
+        z.writestr('respuestas.csv', csv_bytes)
+    mem.seek(0)
+    return send_file(mem, mimetype='application/zip', as_attachment=True, download_name=f'resultados_juego_{game}.zip')
 
 
 @app.route("/api/sesion/reset", methods=["POST"])
 def api_reset():
     sesion_activa["respuestas"] = {}
+    sesion_activa["pregunta_actual"] = None
+    return jsonify({"ok": True})
+
+@app.route("/api/sesion/pregunta", methods=["POST"])
+def api_actualizar_pregunta():
+    data = request.json or {}
+    juego_idx = data.get("juego_idx")
+    pregunta_idx = data.get("pregunta_idx")
+    pregunta = data.get("pregunta", {})
+    if not isinstance(juego_idx, int) or not isinstance(pregunta_idx, int):
+        return jsonify({"error": "Juego o pregunta inválidos"}), 400
+    sesion_activa["pregunta_actual"] = {
+        "juego_idx": juego_idx,
+        "pregunta_idx": pregunta_idx,
+        "pregunta": pregunta,
+    }
+    return jsonify({"ok": True})
+
+@app.route("/api/sesion/guardar", methods=["POST"])
+def api_guardar_sesion():
+    datos = cargar_datos()
+    payload = request.json or {}
+    respuestas = payload.get("respuestas", {})
+    pregunta = payload.get("pregunta", {})
+    juego = payload.get("juego", {})
+    alumnos = payload.get("alumnos", {})
+
+    # Asegurar que el juego tenga un id entero si viene en la petición
+    try:
+        juego_id = int(juego.get('id'))
+    except Exception:
+        juego_id = juego.get('id') if isinstance(juego.get('id'), int) else None
+    if juego_id is not None:
+        juego['id'] = juego_id
+
+    registro = {
+        "timestamp": datetime.now().isoformat(),
+        "juego": juego,
+        "pregunta": pregunta,
+        "respuestas": respuestas,
+        "alumnos": alumnos,
+        "total_respuestas": len(respuestas),
+    }
+    datos.setdefault("sesiones", []).append(registro)
+    guardar_datos(datos)
+    print(f"Sesión guardada: {len(respuestas)} respuestas")
     return jsonify({"ok": True})
 
 
 @app.route("/api/sesion/respuestas", methods=["POST"])
 def api_recibir_respuestas():
-    """
-    El detector envía las respuestas detectadas aquí.
-    Formato esperado: {"respuestas": {"0": "A", "3": "C", ...}}
-    """
     if sesion_activa["activa"]:
         nuevas = request.json.get("respuestas", {})
         sesion_activa["respuestas"].update(nuevas)
     return jsonify({"ok": True})
 
 
-# ══════════════════════════════════════════════════════════════════
-NUM_ALUMNOS = 30
+@app.route("/api/sesiones")
+def api_sesiones():
+    datos = cargar_datos()
+    sesiones = datos.get("sesiones", [])
+    # Incluir nombres de alumnos en cada sesión
+    alumnos = datos.get("alumnos", {})
+    for sesion in sesiones:
+        sesion["alumnos"] = alumnos
+    return jsonify(sesiones)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="PyLickers - Interfaz del Profesor")
     parser.add_argument("--port", type=int, default=5000)
     parser.add_argument("--alumnos", type=int, default=30)
     args = parser.parse_args()
-    NUM_ALUMNOS = args.alumnos
+    NUM_ALUMNOS = min(max(args.alumnos, 1), 49)
 
     print(f"PyLickers Web arrancando en http://localhost:{args.port}")
     print(f"Alumnos configurados: {NUM_ALUMNOS}")

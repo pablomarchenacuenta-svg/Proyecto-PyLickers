@@ -17,12 +17,27 @@ Requisitos:
     pip install flask
 """
 
-from flask import Flask, render_template, jsonify, request, Response
+from flask import Flask, render_template, jsonify, request, Response, send_file
 import json
 import os
+import sys
 import argparse
 import subprocess
 from datetime import datetime
+import io
+import zipfile
+import signal
+
+try:
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    import matplotlib.colors as mcolors
+    import numpy as np
+except Exception:
+    plt = None
+    mcolors = None
+    np = None
 
 app = Flask(__name__)
 
@@ -56,6 +71,9 @@ sesion_activa = {
     "respuestas": {},
     "activa": False,
 }
+
+# Proceso del detector (si se lanza desde la web)
+detector_proc = None
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -190,16 +208,212 @@ def api_iniciar():
     sesion_activa["activa"] = True
     # Lanzar detector en background
     try:
-        subprocess.Popen([os.sys.executable, "detector.py", "--alumnos", str(NUM_ALUMNOS)])
+        global detector_proc
+        if detector_proc is not None and detector_proc.poll() is None:
+            return jsonify({"ok": True, "msg": "Detector ya en ejecución", "pid": detector_proc.pid})
+
+        # Use process group to allow termination
+        kwargs = {}
+        if os.name == 'nt':
+            kwargs['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
+        detector_proc = subprocess.Popen([sys.executable, "detector.py", "--alumnos", str(NUM_ALUMNOS)], **kwargs)
+        return jsonify({"ok": True, "pid": detector_proc.pid})
     except Exception as e:
         print(f"Error al lanzar detector: {e}")
-    return jsonify({"ok": True})
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route("/api/sesion/parar", methods=["POST"])
 def api_parar():
     sesion_activa["activa"] = False
+    global detector_proc
+    if detector_proc is None:
+        return jsonify({"ok": True, "msg": "No había proceso del detector"})
+
+    try:
+        # Try graceful termination
+        if os.name == 'nt':
+            try:
+                # send CTRL_BREAK to the process group
+                detector_proc.send_signal(signal.CTRL_BREAK_EVENT)
+            except Exception:
+                detector_proc.terminate()
+        else:
+            detector_proc.terminate()
+        detector_proc.wait(timeout=3)
+    except Exception:
+        try:
+            detector_proc.kill()
+        except Exception:
+            pass
+    detector_proc = None
     return jsonify({"ok": True})
+
+
+@app.route('/api/resultados/juego/<int:idx>')
+def api_resultados_juego(idx):
+    datos = cargar_datos()
+    juegos = datos.get('juegos', [])
+    sesiones = datos.get('sesiones', [])
+    if idx < 0 or idx >= len(juegos):
+        return jsonify({'error': 'Juego no encontrado'}), 404
+
+    juego = juegos[idx]
+    preguntas = juego.get('preguntas', [])
+    total_students = NUM_ALUMNOS
+
+    resultados = []
+    # Para cada pregunta, buscar la última sesión guardada de ese juego+pregunta
+    for qidx, pregunta in enumerate(preguntas):
+        last = None
+        for s in reversed(sesiones):
+            sj = s.get('juego', {})
+            sp = s.get('pregunta', {})
+            if sj.get('id') == idx and sp.get('pregunta_idx') == qidx:
+                last = s
+                break
+
+        conteo = { 'A': 0, 'B': 0, 'C': 0, 'D': 0 }
+        total_respuestas = 0
+        alumnos = {}
+        respuestas = {}
+        if last:
+            respuestas = last.get('respuestas', {})
+            alumnos = last.get('alumnos', {})
+            for v in respuestas.values():
+                if v in conteo:
+                    conteo[v] += 1
+                    total_respuestas += 1
+
+        porcentajes = {}
+        for k in ['A','B','C','D']:
+            # porcentaje respecto al total de alumnos configurados
+            pct = (conteo[k] / total_students) * 100 if total_students > 0 else 0
+            porcentajes[k] = round(pct, 1)
+
+        resultados.append({
+            'pregunta_idx': qidx,
+            'texto': pregunta.get('texto'),
+            'conteo': conteo,
+            'porcentajes': porcentajes,
+            'total_respuestas': total_respuestas,
+            'last_session': last,
+        })
+
+    return jsonify({'juego': {'id': idx, 'nombre': juego.get('nombre')}, 'resultados': resultados})
+
+
+@app.route('/api/resultados/clear', methods=['POST'])
+def api_resultados_clear():
+    datos = cargar_datos()
+    sesiones = datos.get('sesiones', [])
+    data = request.json or {}
+    game = data.get('game')
+    removed = 0
+    if game is None:
+        removed = len(sesiones)
+        datos['sesiones'] = []
+    else:
+        nuevas = [s for s in sesiones if s.get('juego', {}).get('id') != int(game)]
+        removed = len(sesiones) - len(nuevas)
+        datos['sesiones'] = nuevas
+    guardar_datos(datos)
+    return jsonify({'ok': True, 'removed': removed})
+
+
+@app.route('/api/resultados/export')
+def api_resultados_export():
+    if plt is None or np is None:
+        return jsonify({'error': 'matplotlib o numpy no disponible. Instala las dependencias en el entorno.'}), 500
+
+    game = request.args.get('game')
+    if game is None:
+        return jsonify({'error': 'Parámetro game requerido'}), 400
+    try:
+        game = int(game)
+    except Exception:
+        return jsonify({'error': 'Parámetro game inválido'}), 400
+
+    datos = cargar_datos()
+    juegos = datos.get('juegos', [])
+    sesiones = [s for s in datos.get('sesiones', []) if s.get('juego', {}).get('id') == game]
+    if game < 0 or game >= len(juegos):
+        return jsonify({'error': 'Juego no encontrado'}), 404
+
+    juego = juegos[game]
+    preguntas = juego.get('preguntas', [])
+
+    n_q = len(preguntas)
+    n_s = NUM_ALUMNOS
+
+    # Construir matriz (n_s x n_q) con códigos: A=0,B=1,C=2,D=3, MISSING=4
+    code_map = {'A':0,'B':1,'C':2,'D':3}
+    mat = np.full((n_s, n_q), 4, dtype=int)
+
+    for qidx in range(n_q):
+        last = None
+        for s in reversed(sesiones):
+            sp = s.get('pregunta', {})
+            if sp.get('pregunta_idx') == qidx:
+                last = s
+                break
+        if last:
+            resp = last.get('respuestas', {})
+            for sid, letter in resp.items():
+                try:
+                    i = int(sid)
+                    if 0 <= i < n_s and letter in code_map:
+                        mat[i, qidx] = code_map[letter]
+                except Exception:
+                    continue
+
+    # Crear figura heatmap
+    colors = ['#E74C3C','#3498DB','#2ECC71','#F39C12','#2b2b2b']
+    cmap = mcolors.ListedColormap(colors)
+
+    fig, ax = plt.subplots(figsize=(max(6, n_q*0.8), max(6, n_s*0.12)))
+    im = ax.imshow(mat, cmap=cmap, aspect='auto', vmin=0, vmax=4)
+    ax.set_xlabel('Preguntas')
+    ax.set_ylabel('Alumnos')
+    ax.set_xticks(range(n_q))
+    ax.set_xticklabels([str(i+1) for i in range(n_q)])
+    ax.set_yticks(range(n_s))
+    datos_global = cargar_datos()
+    alumnos_global = datos_global.get('alumnos', {})
+    y_labels = [alumnos_global.get(str(i), {}).get('nombre', f'Alumno {i}') for i in range(n_s)]
+    ax.set_yticklabels(y_labels)
+    cbar = fig.colorbar(im, ax=ax, ticks=[0,1,2,3,4])
+    cbar.ax.set_yticklabels(['A','B','C','D','-'])
+    ax.set_title(f"{juego.get('nombre','Juego')} - Respuestas por alumno (última por pregunta)")
+    plt.tight_layout()
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png')
+    plt.close(fig)
+    buf.seek(0)
+
+    # CSV
+    import csv
+    csv_buf = io.StringIO()
+    writer = csv.writer(csv_buf)
+    header = ['Alumno'] + [f'P{q+1}' for q in range(n_q)]
+    writer.writerow(header)
+    for i in range(n_s):
+        row = [alumnos_global.get(str(i), {}).get('nombre', f'Alumno {i}')]
+        for q in range(n_q):
+            val = mat[i, q]
+            if val == 4:
+                row.append('')
+            else:
+                row.append(['A','B','C','D'][int(val)])
+        writer.writerow(row)
+    csv_bytes = csv_buf.getvalue().encode('utf-8')
+
+    mem = io.BytesIO()
+    with zipfile.ZipFile(mem, 'w') as z:
+        z.writestr('respuestas_por_alumno.png', buf.read())
+        z.writestr('respuestas.csv', csv_bytes)
+    mem.seek(0)
+    return send_file(mem, mimetype='application/zip', as_attachment=True, download_name=f'resultados_juego_{game}.zip')
 
 
 @app.route("/api/sesion/reset", methods=["POST"])
@@ -231,6 +445,14 @@ def api_guardar_sesion():
     pregunta = payload.get("pregunta", {})
     juego = payload.get("juego", {})
     alumnos = payload.get("alumnos", {})
+
+    # Asegurar que el juego tenga un id entero si viene en la petición
+    try:
+        juego_id = int(juego.get('id'))
+    except Exception:
+        juego_id = juego.get('id') if isinstance(juego.get('id'), int) else None
+    if juego_id is not None:
+        juego['id'] = juego_id
 
     registro = {
         "timestamp": datetime.now().isoformat(),
