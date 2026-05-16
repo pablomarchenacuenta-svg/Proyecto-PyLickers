@@ -1,839 +1,1000 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PyLickers - Panel del Profesor</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            /* Colores corporativos de Google */
-            --color-a: #EA4335; /* Rojo Google */
-            --color-b: #4285F4; /* Azul Google */
-            --color-c: #34A853; /* Verde Google */
-            --color-d: #FBBC04; /* Amarillo Google */
-            
-            /* Paleta Material Design */
-            --primary: #0B57D0;
-            --primary-hover: #0842A0;
-            --bg: #F8F9FA; /* Fondo general gris muy claro */
-            --card-bg: #FFFFFF;
-            --text: #202124;
-            --text-dim: #5F6368;
-            --border: #DADCE0;
-            --hover-bg: #F1F3F4;
-            --active-bg: #E8F0FE;
-        }
+                                <!DOCTYPE html>
+                                <html lang="es">
+                                <head>
+                                    <meta charset="UTF-8">
+                                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                    <title>PyLickers - Panel del Profesor</title>
+                                    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+                                    <style>
+                                        :root {
+                                            /* Colores corporativos de Google */
+                                            --color-a: #EA4335; /* Rojo Google */
+                                            --color-b: #4285F4; /* Azul Google */
+                                            --color-c: #34A853; /* Verde Google */
+                                            --color-d: #FBBC04; /* Amarillo Google */
+                                            
+                                            /* Paleta Material Design */
+                                            --primary: #0B57D0;
+                                            --primary-hover: #0842A0;
+                                            --bg: #F8F9FA; /* Fondo general gris muy claro */
+                                            --card-bg: #FFFFFF;
+                                            --text: #202124;
+                                            --text-dim: #5F6368;
+                                            --border: #DADCE0;
+                                            --hover-bg: #F1F3F4;
+                                            --active-bg: #E8F0FE;
+                                        }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { min-height: 100%; }
-        
-        body {
-            font-family: 'Roboto', 'Segoe UI', Tahoma, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.5;
-        }
+                                        * { margin: 0; padding: 0; box-sizing: border-box; }
+                                        html, body { min-height: 100%; }
+                                        
+                                        body {
+                                            font-family: 'Roboto', 'Segoe UI', Tahoma, sans-serif;
+                                            background: var(--bg);
+                                            color: var(--text);
+                                            line-height: 1.5;
+                                        }
 
-        /* Estilo tipo Google Drive / Classroom */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem 1.5rem;
-            background: var(--card-bg);
-            border-bottom: 1px solid var(--border);
-        }
+                                        /* Estilo tipo Google Drive / Classroom */
+                                        .header {
+                                            display: flex;
+                                            justify-content: space-between;
+                                            align-items: center;
+                                            padding: 1rem 1.5rem;
+                                            background: var(--card-bg);
+                                            border-bottom: 1px solid var(--border);
+                                        }
 
-        .header h1 { 
-            font-size: 1.5rem; 
-            font-weight: 500; 
-            color: var(--text-dim);
-        }
-        
-        .header h1 span { 
-            color: var(--color-b); 
-            font-weight: 700;
-        }
-        
-        .header small { 
-            color: var(--text-dim); 
-            font-size: 0.875rem; 
-        }
+                                        .header h1 { 
+                                            font-size: 1.5rem; 
+                                            font-weight: 500; 
+                                            color: var(--text-dim);
+                                        }
+                                        
+                                        .header h1 span { 
+                                            color: var(--color-b); 
+                                            font-weight: 700;
+                                        }
+                                        
+                                        .header small { 
+                                            color: var(--text-dim); 
+                                            font-size: 0.875rem; 
+                                        }
 
-        .container {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 1.5rem;
-            padding: 1.5rem;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+                                        .container {
+                                            display: grid;
+                                            grid-template-columns: 1fr;
+                                            gap: 1.5rem;
+                                            padding: 1.5rem;
+                                            max-width: 1200px;
+                                            margin: 0 auto;
+                                        }
 
-        /* Tarjetas estilo Material 3: planas, borde sutil, sin sombra pesada */
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1.5rem;
-        }
+                                        /* Tarjetas estilo Material 3: planas, borde sutil, sin sombra pesada */
+                                        .card {
+                                            background: var(--card-bg);
+                                            border: 1px solid var(--border);
+                                            border-radius: 8px;
+                                            padding: 1.5rem;
+                                        }
 
-        .nav-card {
-            width: 100%;
-            padding: 1rem 1.5rem;
-        }
+                                        .nav-card {
+                                            width: 100%;
+                                            padding: 1rem 1.5rem;
+                                        }
 
-        .card h2 {
-            font-size: 1.125rem;
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-            color: var(--text);
-        }
+                                        .card h2 {
+                                            font-size: 1.125rem;
+                                            font-weight: 500;
+                                            margin-bottom: 0.5rem;
+                                            color: var(--text);
+                                        }
 
-        .form-group { margin-bottom: 1.25rem; }
-        
-        .form-group label { 
-            display: block; 
-            margin-bottom: 0.5rem; 
-            color: var(--text); 
-            font-size: 0.875rem; 
-            font-weight: 500;
-        }
+                                        .form-group { margin-bottom: 1.25rem; }
+                                        
+                                        .form-group label { 
+                                            display: block; 
+                                            margin-bottom: 0.5rem; 
+                                            color: var(--text); 
+                                            font-size: 0.875rem; 
+                                            font-weight: 500;
+                                        }
 
-        /* Inputs estilo Outlined de Material Design */
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border-radius: 4px;
-            border: 1px solid var(--border);
-            background: var(--card-bg);
-            color: var(--text);
-            font-size: 0.95rem;
-            font-family: inherit;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
+                                        /* Inputs estilo Outlined de Material Design */
+                                        .form-group input,
+                                        .form-group textarea,
+                                        .form-group select {
+                                            width: 100%;
+                                            padding: 0.75rem 1rem;
+                                            border-radius: 4px;
+                                            border: 1px solid var(--border);
+                                            background: var(--card-bg);
+                                            color: var(--text);
+                                            font-size: 0.95rem;
+                                            font-family: inherit;
+                                            transition: border-color 0.2s, box-shadow 0.2s;
+                                        }
 
-        .form-group input:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 1px var(--primary);
-        }
+                                        .form-group input:focus,
+                                        .form-group textarea:focus,
+                                        .form-group select:focus {
+                                            outline: none;
+                                            border-color: var(--primary);
+                                            box-shadow: 0 0 0 1px var(--primary);
+                                        }
 
-        .form-group textarea { min-height: 100px; resize: vertical; }
+                                        .form-group textarea { min-height: 100px; resize: vertical; }
 
-        /* Botones estilo píldora de Google */
-        .btn {
-            padding: 0.6rem 1.25rem;
-            border: none;
-            border-radius: 20px; /* Estilo píldora */
-            cursor: pointer;
-            font-weight: 500;
-            font-size: 0.875rem;
-            letter-spacing: 0.25px;
-            transition: background 0.2s ease, box-shadow 0.2s ease;
-            margin-right: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
+                                        /* Botones estilo píldora de Google */
+                                        .btn {
+                                            padding: 0.6rem 1.25rem;
+                                            border: none;
+                                            border-radius: 20px; /* Estilo píldora */
+                                            cursor: pointer;
+                                            font-weight: 500;
+                                            font-size: 0.875rem;
+                                            letter-spacing: 0.25px;
+                                            transition: background 0.2s ease, box-shadow 0.2s ease;
+                                            margin-right: 0.5rem;
+                                            margin-bottom: 0.5rem;
+                                        }
 
-        .btn-primary { 
-            background: var(--primary); 
-            color: white; 
-        }
-        
-        .btn-primary:hover { 
-            background: var(--primary-hover); 
-            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-        }
+                                        .btn-primary { 
+                                            background: var(--primary); 
+                                            color: white; 
+                                        }
+                                        
+                                        .btn-primary:hover { 
+                                            background: var(--primary-hover); 
+                                            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+                                        }
 
-        .btn-secondary { 
-            background: var(--card-bg); 
-            color: var(--primary);
-            border: 1px solid var(--border);
-        }
-        
-        .btn-secondary:hover { 
-            background: var(--hover-bg); 
-        }
+                                        .btn-secondary { 
+                                            background: var(--card-bg); 
+                                            color: var(--primary);
+                                            border: 1px solid var(--border);
+                                        }
+                                        
+                                        .btn-secondary:hover { 
+                                            background: var(--hover-bg); 
+                                        }
 
-        .btn-danger { 
-            background: var(--card-bg); 
-            color: var(--color-a);
-            border: 1px solid var(--border);
-        }
+                                        .btn-danger { 
+                                            background: var(--card-bg); 
+                                            color: var(--color-a);
+                                            border: 1px solid var(--border);
+                                        }
 
-        .btn-danger:hover {
-            background: #FCE8E6;
-        }
+                                        .btn-danger:hover {
+                                            background: #FCE8E6;
+                                        }
 
-        .btn-group { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-right: 0;}
+                                        .btn-group { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-right: 0;}
 
-        .small-note { color: var(--text-dim); font-size: 0.8rem; margin-top: 0.2rem; }
+                                        .small-note { color: var(--text-dim); font-size: 0.8rem; margin-top: 0.2rem; }
 
-        /* Navegación estilo Chips de Google */
-        .panel-nav { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-start; }
-        
-        .panel-button {
-            border: 1px solid var(--border);
-            background: var(--card-bg);
-            color: var(--text-dim);
-            border-radius: 16px;
-            padding: 0.5rem 1rem;
-            text-align: center;
-            cursor: pointer;
-            font-weight: 500;
-            font-size: 0.875rem;
-            transition: all 0.2s ease;
-        }
-        
-        .panel-button:hover { background: var(--hover-bg); color: var(--text); }
-        
-        .panel-button.active { 
-            background: var(--active-bg); 
-            color: var(--primary);
-            border-color: var(--active-bg);
-        }
+                                        /* Navegación estilo Chips de Google */
+                                        .panel-nav { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-start; }
+                                        
+                                        .panel-button {
+                                            border: 1px solid var(--border);
+                                            background: var(--card-bg);
+                                            color: var(--text-dim);
+                                            border-radius: 16px;
+                                            padding: 0.5rem 1rem;
+                                            text-align: center;
+                                            cursor: pointer;
+                                            font-weight: 500;
+                                            font-size: 0.875rem;
+                                            transition: all 0.2s ease;
+                                        }
+                                        
+                                        .panel-button:hover { background: var(--hover-bg); color: var(--text); }
+                                        
+                                        .panel-button.active { 
+                                            background: var(--active-bg); 
+                                            color: var(--primary);
+                                            border-color: var(--active-bg);
+                                        }
 
-        .page-section { display: none; }
-        .page-section.active { display: block; animation: fadeIn 0.3s ease; }
+                                        .page-section { display: none; }
+                                        .page-section.active { display: block; animation: fadeIn 0.3s ease; }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+                                        @keyframes fadeIn {
+                                            from { opacity: 0; transform: translateY(5px); }
+                                            to { opacity: 1; transform: translateY(0); }
+                                        }
 
-        .section-card-header { margin-bottom: 1.5rem; }
-        
-        /* Listas estilo Google Drive */
-        .game-list, .question-list { 
-            display: grid; 
-            gap: 0.5rem; 
-            max-height: 350px; 
-            overflow-y: auto; 
-            margin-bottom: 1.5rem;
-        }
-        
-        .game-item, .question-item {
-            padding: 1rem;
-            border-radius: 8px;
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            cursor: pointer;
-            transition: background 0.2s ease, border-color 0.2s ease;
-        }
-        
-        .game-item:hover, .question-item:hover { background: var(--hover-bg); }
-        
-        .game-item.active, .question-item.active { 
-            background: var(--active-bg); 
-            border-color: var(--primary);
-        }
-        
-        .game-item .title, .question-item .title { 
-            font-weight: 500; 
-            font-size: 1rem; 
-            color: var(--text);
-            margin-bottom: 0.25rem; 
-        }
+                                        .section-card-header { margin-bottom: 1.5rem; }
+                                        
+                                        /* Listas estilo Google Drive */
+                                        .game-list, .question-list { 
+                                            display: grid; 
+                                            gap: 0.5rem; 
+                                            max-height: 350px; 
+                                            overflow-y: auto; 
+                                            margin-bottom: 1.5rem;
+                                        }
+                                        
+                                        .game-item, .question-item {
+                                            padding: 1rem;
+                                            border-radius: 8px;
+                                            background: var(--card-bg);
+                                            border: 1px solid var(--border);
+                                            cursor: pointer;
+                                            transition: background 0.2s ease, border-color 0.2s ease;
+                                        }
+                                        
+                                        .game-item:hover, .question-item:hover { background: var(--hover-bg); }
+                                        
+                                        .game-item.active, .question-item.active { 
+                                            background: var(--active-bg); 
+                                            border-color: var(--primary);
+                                        }
+                                        
+                                        .game-item .title, .question-item .title { 
+                                            font-weight: 500; 
+                                            font-size: 1rem; 
+                                            color: var(--text);
+                                            margin-bottom: 0.25rem; 
+                                        }
 
-        /* Estilo especial para la pantalla de modo juego (Presentación) */
-        .question-display {
-            border-radius: 12px;
-            padding: 2rem;
-            background: var(--hover-bg);
-            border: 1px solid var(--border);
-            text-align: center;
-        }
-        
-        .question-display .number { color: var(--primary); font-weight: 500; font-size: 0.875rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.5px;}
-        .question-display .text { font-size: 1.5rem; font-weight: 400; color: var(--text); margin-bottom: 2rem;}
-        
-        .options { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; text-align: left; }
-        
-        .option { 
-            padding: 1rem 1.25rem; 
-            border-radius: 8px; 
-            background: var(--card-bg); 
-            border: 1px solid var(--border);
-            font-weight: 500;
-        }
-        
-        /* Colores icónicos para las opciones */
-        .option.a { border-left: 6px solid var(--color-a); }
-        .option.b { border-left: 6px solid var(--color-b); }
-        .option.c { border-left: 6px solid var(--color-c); }
-        .option.d { border-left: 6px solid var(--color-d); }
-        
-        .option span { display: inline-block; min-width: 2rem; color: var(--text-dim); }
+                                        /* Estilo especial para la pantalla de modo juego (Presentación) */
+                                        .question-display {
+                                            border-radius: 12px;
+                                            padding: 2rem;
+                                            background: var(--hover-bg);
+                                            border: 1px solid var(--border);
+                                            text-align: center;
+                                        }
+                                        
+                                        .question-display .number { color: var(--primary); font-weight: 500; font-size: 0.875rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.5px;}
+                                        .question-display .text { font-size: 1.5rem; font-weight: 400; color: var(--text); margin-bottom: 2rem;}
+                                        
+                                        .options { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; text-align: left; }
+                                        
+                                        .option { 
+                                            padding: 1rem 1.25rem; 
+                                            border-radius: 8px; 
+                                            background: var(--card-bg); 
+                                            border: 1px solid var(--border);
+                                            font-weight: 500;
+                                        }
+                                        
+                                        /* Colores icónicos para las opciones */
+                                        .option.a { border-left: 6px solid var(--color-a); }
+                                        .option.b { border-left: 6px solid var(--color-b); }
+                                        .option.c { border-left: 6px solid var(--color-c); }
+                                        .option.d { border-left: 6px solid var(--color-d); }
+                                        
+                                        .option span { display: inline-block; min-width: 2rem; color: var(--text-dim); }
 
-        .student-grid { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 0.75rem; margin-top: 1.5rem; }
-        .student-grid.large { grid-template-columns: repeat(7, minmax(0,1fr)); }
-        
-        .student-cell {
-            padding: 0.75rem 0.5rem;
-            border-radius: 8px;
-            text-align: center;
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            cursor: pointer;
-            transition: transform 0.1s;
-        }
-        .student-cell:hover { background: var(--hover-bg); }
-        
-        /* Estados de respuesta de los alumnos */
-        .student-cell.answered { color: white; border-color: transparent; }
-        .student-cell.a { background: var(--color-a); }
-        .student-cell.b { background: var(--color-b); }
-        .student-cell.c { background: var(--color-c); }
-        .student-cell.d { background: var(--color-d); }
-        
-        .student-cell .id { font-size: 0.75rem; color: var(--text-dim); margin-bottom: 0.25rem; font-weight: 500; }
-        .student-cell.answered .id { color: rgba(255,255,255,0.8); }
-        .student-cell .name { font-size: 0.875rem; font-weight: 500; }
+                                        .student-grid { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 0.75rem; margin-top: 1.5rem; }
+                                        .student-grid.large { grid-template-columns: repeat(7, minmax(0,1fr)); }
+                                        
+                                        .student-cell {
+                                            padding: 0.75rem 0.5rem;
+                                            border-radius: 8px;
+                                            text-align: center;
+                                            background: var(--card-bg);
+                                            border: 1px solid var(--border);
+                                            cursor: pointer;
+                                            transition: transform 0.1s;
+                                        }
+                                        .student-cell:hover { background: var(--hover-bg); }
+                                        
+                                        /* Estados de respuesta de los alumnos */
+                                        .student-cell.answered { color: white; border-color: transparent; }
+                                        .student-cell.a { background: var(--color-a); }
+                                        .student-cell.b { background: var(--color-b); }
+                                        .student-cell.c { background: var(--color-c); }
+                                        .student-cell.d { background: var(--color-d); }
+                                        
+                                        .student-cell .id { font-size: 0.75rem; color: var(--text-dim); margin-bottom: 0.25rem; font-weight: 500; }
+                                        .student-cell.answered .id { color: rgba(255,255,255,0.8); }
+                                        .student-cell .name { font-size: 0.875rem; font-weight: 500; }
 
-        /* Barras de resultados estilo Google Forms */
-        .results-bars { display: grid; gap: 1rem; margin-top: 1.5rem; margin-bottom: 2rem; padding: 1.5rem; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border);}
-        .bar-row { display: grid; grid-template-columns: 30px 1fr; gap: 1rem; align-items: center; }
-        .bar-label { display: flex; align-items: center; gap: 0.6rem; color: var(--text); font-size: 0.875rem; font-weight: 500; }
-        
-        .bar-track { height: 24px; border-radius: 4px; background: var(--hover-bg); overflow: hidden; width: 100%;}
-        .bar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: flex-end; padding-right: 0.75rem; color: #fff; font-size: 0.75rem; font-weight: 700; transition: width 0.4s ease;}
-        
-        .bar-fill.a { background: var(--color-a); }
-        .bar-fill.b { background: var(--color-b); }
-        .bar-fill.c { background: var(--color-c); }
-        .bar-fill.d { background: var(--color-d); }
+                                        /* Barras de resultados estilo Google Forms */
+                                        .results-bars { display: grid; gap: 1rem; margin-top: 1.5rem; margin-bottom: 2rem; padding: 1.5rem; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border);}
+                                        .bar-row { display: grid; grid-template-columns: 30px 1fr; gap: 1rem; align-items: center; }
+                                        .bar-label { display: flex; align-items: center; gap: 0.6rem; color: var(--text); font-size: 0.875rem; font-weight: 500; }
+                                        
+                                        .bar-track { height: 24px; border-radius: 4px; background: var(--hover-bg); overflow: hidden; width: 100%;}
+                                        .bar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: flex-end; padding-right: 0.75rem; color: #fff; font-size: 0.75rem; font-weight: 700; transition: width 0.4s ease;}
+                                        
+                                        .bar-fill.a { background: var(--color-a); }
+                                        .bar-fill.b { background: var(--color-b); }
+                                        .bar-fill.c { background: var(--color-c); }
+                                        .bar-fill.d { background: var(--color-d); }
 
-        /* Modales estilo Google Dialogs */
-        .modal { display: none; position: fixed; inset: 0; background: rgba(32,33,36,0.6); z-index: 1000; justify-content: center; align-items: center; padding: 1rem; }
-        .modal.visible { display: flex; animation: fadeIn 0.2s ease; }
-        
-        .modal-content { 
-            width: 100%; 
-            max-width: 450px; 
-            background: var(--card-bg); 
-            border-radius: 8px; 
-            padding: 1.5rem 2rem; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08); 
-        }
-        
-        .modal-close { float: right; cursor: pointer; font-size: 1.5rem; color: var(--text-dim); line-height: 1; }
-        .modal-close:hover { color: var(--text); }
-        .modal-content h2 { margin-bottom: 1.5rem; font-weight: 400; font-size: 1.25rem;}
+                                        /* Modales estilo Google Dialogs */
+                                        .modal { display: none; position: fixed; inset: 0; background: rgba(32,33,36,0.6); z-index: 1000; justify-content: center; align-items: center; padding: 1rem; }
+                                        .modal.visible { display: flex; animation: fadeIn 0.2s ease; }
+                                        
+                                        .modal-content { 
+                                            width: 100%; 
+                                            max-width: 450px; 
+                                            background: var(--card-bg); 
+                                            border-radius: 8px; 
+                                            padding: 1.5rem 2rem; 
+                                            box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08); 
+                                        }
+                                        
+                                        .modal-close { float: right; cursor: pointer; font-size: 1.5rem; color: var(--text-dim); line-height: 1; }
+                                        .modal-close:hover { color: var(--text); }
+                                        .modal-content h2 { margin-bottom: 1.5rem; font-weight: 400; font-size: 1.25rem;}
 
-        @media (max-width: 1000px) {
-            .options { grid-template-columns: 1fr; }
-            .student-grid.large { grid-template-columns: repeat(5, minmax(0,1fr)); }
-        }
-        @media (max-width: 700px) {
-            .student-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
-            .student-grid.large { grid-template-columns: repeat(3, minmax(0,1fr)); }
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <div>
-            <h1>Py<span>Lickers</span></h1>
-            <small>Panel del profesor</small>
-        </div>
-        <div class="small-note">Alumnos máximo 49</div>
-    </div>
+                                        @media (max-width: 1000px) {
+                                            .options { grid-template-columns: 1fr; }
+                                            .student-grid.large { grid-template-columns: repeat(5, minmax(0,1fr)); }
+                                        }
+                                        @media (max-width: 700px) {
+                                            .student-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+                                            .student-grid.large { grid-template-columns: repeat(3, minmax(0,1fr)); }
+                                        }
+                                    </style>
+                                </head>
+                                <body>
+                                    <div class="header">
+                                        <div>
+                                            <h1>Py<span>Lickers</span></h1>
+                                            <small>Panel del profesor</small>
+                                        </div>
+                                        <div class="small-note">Alumnos máximo 49</div>
+                                    </div>
 
-    <div class="container">
-        <div class="main-panel">
-            <div class="card nav-card">
-                <div class="section-card-header" style="margin-bottom: 0;">
-                    <div class="panel-nav">
-                        <button class="panel-button active" id="tabGames" onclick="showSection('games')">Juegos</button>
-                        <button class="panel-button" id="tabQuestions" onclick="showSection('questions')">Preguntas</button>
-                        <button class="panel-button" id="tabStudents" onclick="showSection('students')">Alumnos</button>
-                        <button class="panel-button" id="tabPlay" onclick="showSection('play')">Modo Juego</button>
-                        <button class="panel-button" id="tabResults" onclick="showSection('results')">Resultados</button>
-                    </div>
-                </div>
-            </div>
+                                    <div class="container">
+                                        <div class="main-panel">
+                                            <div class="card nav-card">
+                                                <div class="section-card-header" style="margin-bottom: 0;">
+                                                    <div class="panel-nav">
+                                                        <button class="panel-button active" id="tabGames" onclick="showSection('games')">Juegos</button>
+                                                        <button class="panel-button" id="tabQuestions" onclick="showSection('questions')">Preguntas</button>
+                                                        <button class="panel-button" id="tabStudents" onclick="showSection('students')">Alumnos</button>
+                                                        <button class="panel-button" id="tabPlay" onclick="showSection('play')">Modo Juego</button>
+                                                        <button class="panel-button" id="tabResults" onclick="showSection('results')">Resultados</button>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-            <div id="section-games" class="page-section active">
-                <div class="card">
-                    <div class="section-card-header">
-                        <div>
-                            <h2>Mis juegos</h2>
-                            <p class="small-note">Crea o selecciona un juego para comenzar a preparar preguntas.</p>
-                        </div>
-                    </div>
-                    <div class="game-list" id="gameList"></div>
-                    <div class="form-group">
-                        <label>Nombre del juego</label>
-                        <input id="newGameName" placeholder="Ej. Quiz de Historia">
-                    </div>
-                    <div class="form-group">
-                        <label>Descripción</label>
-                        <input id="newGameDescription" placeholder="Breve descripción">
-                    </div>
-                    <button class="btn btn-primary" onclick="guardarJuego()">Crear juego</button>
-                </div>
-            </div>
+                                            <div id="section-games" class="page-section active">
+                                                <div class="card">
+                                                    <div class="section-card-header">
+                                                        <div>
+                                                            <h2>Mis juegos</h2>
+                                                            <p class="small-note">Crea o selecciona un juego para comenzar a preparar preguntas.</p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="game-list" id="gameList"></div>
+                                                    <div class="form-group">
+                                                        <label>Nombre del juego</label>
+                                                        <input id="newGameName" placeholder="Ej. Quiz de Historia">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label>Descripción</label>
+                                                        <input id="newGameDescription" placeholder="Breve descripción">
+                                                    </div>
+                                                    <button class="btn btn-primary" onclick="guardarJuego()">Crear juego</button>
+                                                </div>
+                                            </div>
 
-            <div id="section-questions" class="page-section">
-                <div class="card">
-                    <div class="section-card-header">
-                        <div>
-                            <h2>Editor de preguntas</h2>
-                            <p class="small-note">Gestiona las preguntas del juego seleccionado.</p>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Juego seleccionado</label>
-                        <input id="selectedGameName" disabled placeholder="Selecciona un juego primero">
-                    </div>
-                    <div class="question-list" id="questionList"></div>
-                    <div class="form-group">
-                        <label>Texto de la pregunta</label>
-                        <textarea id="newQuestion" placeholder="Escribe la pregunta..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Opción A</label>
-                        <input id="newOptA" placeholder="Opción A">
-                    </div>
-                    <div class="form-group">
-                        <label>Opción B</label>
-                        <input id="newOptB" placeholder="Opción B">
-                    </div>
-                    <div class="form-group">
-                        <label>Opción C</label>
-                        <input id="newOptC" placeholder="Opción C">
-                    </div>
-                    <div class="form-group">
-                        <label>Opción D</label>
-                        <input id="newOptD" placeholder="Opción D">
-                    </div>
-                    <div class="form-group">
-                        <label>Respuesta correcta</label>
-                        <select id="correctAnswer">
-                            <option value="A">A</option>
-                            <option value="B">B</option>
-                            <option value="C">C</option>
-                            <option value="D">D</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-primary" onclick="guardarPregunta()">Guardar pregunta</button>
-                    <div class="small-note" style="margin-top: 0.5rem">La pregunta se guarda en el juego seleccionado y se muestra en el modo de juego.</div>
-                </div>
-            </div>
+                                            <div id="section-questions" class="page-section">
+                                                <div class="card">
+                                                    <div class="section-card-header">
+                                                        <div>
+                                                            <h2>Editor de preguntas</h2>
+                                                            <p class="small-note">Gestiona las preguntas del juego seleccionado.</p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label>Juego seleccionado</label>
+                                                        <input id="selectedGameName" disabled placeholder="Selecciona un juego primero">
+                                                    </div>
+                                                    <div class="question-list" id="questionList"></div>
+                                                    <div class="form-group">
+                                                        <label>Texto de la pregunta</label>
+                                                        <textarea id="newQuestion" placeholder="Escribe la pregunta..."></textarea>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label>Opción A</label>
+                                                        <input id="newOptA" placeholder="Opción A">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label>Opción B</label>
+                                                        <input id="newOptB" placeholder="Opción B">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label>Opción C</label>
+                                                        <input id="newOptC" placeholder="Opción C">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label>Opción D</label>
+                                                        <input id="newOptD" placeholder="Opción D">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label>Respuesta correcta</label>
+                                                        <select id="correctAnswer">
+                                                            <option value="A">A</option>
+                                                            <option value="B">B</option>
+                                                            <option value="C">C</option>
+                                                            <option value="D">D</option>
+                                                        </select>
+                                                    </div>
+                                                    <button class="btn btn-primary" onclick="guardarPregunta()">Guardar pregunta</button>
+                                                    <div class="small-note" style="margin-top: 0.5rem">La pregunta se guarda en el juego seleccionado y se muestra en el modo de juego.</div>
+                                                </div>
+                                            </div>
 
-            <div id="section-students" class="page-section">
-                <div class="card">
-                    <div class="section-card-header">
-                        <div>
-                            <h2>Configuración de alumnos</h2>
-                            <p class="small-note">Asigna nombres antes de empezar a escanear respuestas.</p>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Número de alumnos</label>
-                        <input type="number" id="numAlumnos" value="{{ num_alumnos }}" min="1" max="49" onchange="cambiarNumAlumnos()">
-                    </div>
-                    <div class="btn-group">
-                        <button class="btn btn-secondary" onclick="asignarNumeros()">Asignar números</button>
-                        <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">Importar TXT</button>
-                        <a class="btn btn-secondary" href="/api/alumnos/exportar?max={{ num_alumnos }}" style="text-decoration:none; display:inline-flex; align-items:center;">Exportar TXT</a>
-                        <button class="btn btn-danger" onclick="resetearNombres()">Reset nombres</button>
-                    </div>
-                    <input type="file" id="importFile" accept=".txt" style="display:none;">
-                    <div class="small-note" style="margin-top: 1rem;">Importa un nombre por línea. Haz click en un alumno para editar su nombre.</div>
-                    <div class="student-grid large" id="studentGrid"></div>
-                </div>
-            </div>
+                                            <div id="section-students" class="page-section">
+                                                <div class="card">
+                                                    <div class="section-card-header">
+                                                        <div>
+                                                            <h2>Configuración de alumnos</h2>
+                                                            <p class="small-note">Asigna nombres antes de empezar a escanear respuestas.</p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label>Número de alumnos</label>
+                                                        <input type="number" id="numAlumnos" value="{{ num_alumnos }}" min="1" max="49" onchange="cambiarNumAlumnos()">
+                                                    </div>
+                                                    <div class="btn-group">
+                                                        <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">Importar TXT</button>
+                                                        <a class="btn btn-secondary" href="/api/alumnos/exportar?max={{ num_alumnos }}" style="text-decoration:none; display:inline-flex; align-items:center;">Exportar TXT</a>
+                                                        <button class="btn btn-danger" onclick="resetearNombres()">Reset nombres</button>
+                                                    </div>
+                                                    <input type="file" id="importFile" accept=".txt" style="display:none;">
+                                                    <div class="small-note" style="margin-top: 1rem;">Importa un nombre por línea. Haz click en un alumno para editar su nombre.</div>
+                                                    <div class="student-grid large" id="studentGrid"></div>
+                                                </div>
+                                            </div>
 
-            <div id="section-play" class="page-section">
-                <div class="card">
-                    <div class="section-card-header">
-                        <div>
-                            <h2>Modo Juego</h2>
-                            <p class="small-note">Avanza pregunta a pregunta y escanea las respuestas en tiempo real.</p>
-                        </div>
-                    </div>
-                    <div class="question-display" id="playQuestionDisplay">
-                        <div class="number" id="playQuestionNumber">Selecciona una pregunta</div>
-                        <div class="text" id="playQuestionText">En este modo verás una pregunta grande mientras escaneas.</div>
-                        <div class="options" id="playQuestionOptions" style="display:none;"></div>
-                    </div>
-                    <div class="results-bars" id="playResultsBars" style="display:none;">
-                        <div class="bar-row">
-                            <div class="bar-label">A <span class="bar-count" id="playCountA">0</span></div>
-                            <div class="bar-track"><div class="bar-fill a" id="playBarA" style="width:0%"></div></div>
-                        </div>
-                        <div class="bar-row">
-                            <div class="bar-label">B <span class="bar-count" id="playCountB">0</span></div>
-                            <div class="bar-track"><div class="bar-fill b" id="playBarB" style="width:0%"></div></div>
-                        </div>
-                        <div class="bar-row">
-                            <div class="bar-label">C <span class="bar-count" id="playCountC">0</span></div>
-                            <div class="bar-track"><div class="bar-fill c" id="playBarC" style="width:0%"></div></div>
-                        </div>
-                        <div class="bar-row">
-                            <div class="bar-label">D <span class="bar-count" id="playCountD">0</span></div>
-                            <div class="bar-track"><div class="bar-fill d" id="playBarD" style="width:0%"></div></div>
-                        </div>
-                    </div>
-                    <div class="btn-group" style="margin-top: 1.5rem;">
-                        <button class="btn btn-secondary" onclick="prevQuestion()">Anterior</button>
-                        <button class="btn btn-secondary" onclick="nextQuestion()">Siguiente</button>
-                        <button class="btn btn-primary" onclick="iniciarEscaneo()">Iniciar escaneo</button>
-                        <button class="btn btn-danger" onclick="pararEscaneo()">Parar</button>
-                        <button class="btn btn-secondary" onclick="guardarSesion()">Guardar resultados</button>
-                    </div>
-                    <div class="small-note" style="margin-top: 0.5rem">Recuerda seleccionar primero un juego y una pregunta en el panel de preguntas.</div>
-                </div>
-            </div>
+                                            <div id="section-play" class="page-section">
+                                                <div class="card">
+                                                    <div class="section-card-header">
+                                                        <div>
+                                                            <h2>Modo Juego</h2>
+                                                            <p class="small-note">Avanza pregunta a pregunta y escanea las respuestas en tiempo real.</p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="question-display" id="playQuestionDisplay">
+                                                        <div class="number" id="playQuestionNumber">Selecciona una pregunta</div>
+                                                        <div class="text" id="playQuestionText">En este modo verás una pregunta grande mientras escaneas.</div>
+                                                        <div class="options" id="playQuestionOptions" style="display:none;"></div>
+                                                    </div>
+                                                    <div class="results-bars" id="playResultsBars" style="display:none;">
+                                                        <div class="bar-row">
+                                                            <div class="bar-label">A <span class="bar-count" id="playCountA">0</span></div>
+                                                            <div class="bar-track"><div class="bar-fill a" id="playBarA" style="width:0%"></div></div>
+                                                        </div>
+                                                        <div class="bar-row">
+                                                            <div class="bar-label">B <span class="bar-count" id="playCountB">0</span></div>
+                                                            <div class="bar-track"><div class="bar-fill b" id="playBarB" style="width:0%"></div></div>
+                                                        </div>
+                                                        <div class="bar-row">
+                                                            <div class="bar-label">C <span class="bar-count" id="playCountC">0</span></div>
+                                                            <div class="bar-track"><div class="bar-fill c" id="playBarC" style="width:0%"></div></div>
+                                                        </div>
+                                                        <div class="bar-row">
+                                                            <div class="bar-label">D <span class="bar-count" id="playCountD">0</span></div>
+                                                            <div class="bar-track"><div class="bar-fill d" id="playBarD" style="width:0%"></div></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="btn-group" style="margin-top: 1.5rem;">
+                                                        <button class="btn btn-secondary" onclick="prevQuestion()">Anterior</button>
+                                                        <button class="btn btn-secondary" onclick="nextQuestion()">Siguiente</button>
+                                                        <button id="btnStartGame" class="btn btn-primary" onclick="empezarJuego()">Iniciar juego</button>
+                                                        <button id="btnFinishGame" class="btn btn-danger" onclick="finalizarJuego()" disabled>Finalizar juego</button>
+                                                    </div>
+                                                    <div id="playStatus" class="small-note" style="margin-top: 0.5rem">No se ha iniciado ninguna partida.</div>
+                                                    <div class="small-note" style="margin-top: 0.25rem">Recuerda seleccionar primero un juego y una pregunta en el panel de preguntas.</div>
+                                                </div>
+                                            </div>
 
-            <div id="section-results" class="page-section">
-                <div class="card">
-                    <div class="section-card-header">
-                        <div>
-                            <h2>Resultados de juegos</h2>
-                            <p class="small-note">Historial de sesiones guardadas con respuestas por alumno.</p>
-                        </div>
-                    </div>
-                    <div id="resultsList"></div>
-                </div>
-            </div>
-        </div>
-    </div>
+                                            <div id="section-results" class="page-section">
+                                                <div class="card">
+                                                    <div class="section-card-header">
+                                                        <div>
+                                                            <h2>Resultados de juegos</h2>
+                                                            <p class="small-note">Historial de partidas guardadas con respuestas por alumno.</p>
+                                                        </div>
+                                                    </div>
+                                                    <div id="resultsList"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
 
-    <div id="modalEditor" class="modal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="cerrarEditorNombre()">×</span>
-            <h2>Editar nombre</h2>
-            <div class="form-group">
-                <label>Alumno #<span id="editorNum"></span></label>
-                <input type="text" id="inputNombre" placeholder="Nombre del alumno">
-            </div>
-            <div class="btn-group" style="justify-content: flex-end;">
-                <button class="btn btn-secondary" onclick="cerrarEditorNombre()">Cancelar</button>
-                <button class="btn btn-primary" onclick="guardarNombre()" style="margin-right: 0;">Guardar</button>
-            </div>
-        </div>
-    </div>
+                                    <div id="modalEditor" class="modal">
+                                        <div class="modal-content">
+                                            <span class="modal-close" onclick="cerrarEditorNombre()">×</span>
+                                            <h2>Editar nombre</h2>
+                                            <div class="form-group">
+                                                <label>Alumno #<span id="editorNum"></span></label>
+                                                <input type="text" id="inputNombre" placeholder="Nombre del alumno">
+                                            </div>
+                                            <div class="btn-group" style="justify-content: flex-end;">
+                                                <button class="btn btn-secondary" onclick="cerrarEditorNombre()">Cancelar</button>
+                                                <button class="btn btn-primary" onclick="guardarNombre()" style="margin-right: 0;">Guardar</button>
+                                            </div>
+                                        </div>
+                                    </div>
 
-    <div id="modalResults" class="modal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="cerrarModalResultados()">×</span>
-            <div id="modalResultsContent"></div>
-            <div class="btn-group" style="margin-top:1.5rem; justify-content: flex-end;">
-                <button class="btn btn-primary" onclick="cerrarModalResultados()" style="margin-right: 0;">Cerrar</button>
-            </div>
-        </div>
-    </div>
+                                    <div id="modalResults" class="modal">
+                                        <div class="modal-content">
+                                            <span class="modal-close" onclick="cerrarModalResultados()">×</span>
+                                            <div id="modalResultsContent"></div>
+                                            <div class="btn-group" style="margin-top:1.5rem; justify-content: flex-end;">
+                                                <button class="btn btn-primary" onclick="cerrarModalResultados()" style="margin-right: 0;">Cerrar</button>
+                                            </div>
+                                        </div>
+                                    </div>
 
-    <script>
-        let juegos = [];
-        let preguntas = [];
-        let currentGame = null;
-        let preguntaActualIdx = 0;
-        let respuestas = {};
-        let polling = null;
-        let alumnosNombres = {};
-        let editorAlumnoId = null;
-        let numAlumnos = {{ num_alumnos }};
-        let currentSection = 'games';
+                                    <script>
+                                        let juegos = [];
+                                        let preguntas = [];
+                                        let currentGame = null;
+                                        let preguntaActualIdx = 0;
+                                        let respuestas = {};
+                                        let polling = null;
+                                        let alumnosNombres = {};
+                                        let editorAlumnoId = null;
+                                        let numAlumnos = {{ num_alumnos }};
+                                        let currentSection = 'games';
+                                        let jugando = false;
+                                        let sesiones = [];
 
-        function showSection(name) {
-            document.querySelectorAll('.page-section').forEach(section => {
-                section.classList.toggle('active', section.id === `section-${name}`);
-            });
-            const map = {
-                games: 'tabGames',
-                questions: 'tabQuestions',
-                students: 'tabStudents',
-                play: 'tabPlay',
-                results: 'tabResults'
-            };
-            document.querySelectorAll('.panel-button').forEach(button => {
-                button.classList.toggle('active', button.id === map[name]);
-            });
-            currentSection = name;
-            if (name === 'students') renderStudentGrid();
-            if (name === 'questions') updateSelectedGameInfo();
-            if (name === 'play') updatePlayView();
-            if (name === 'results') cargarResultados();
-        }
+                                        function showSection(name) {
+                                            document.querySelectorAll('.page-section').forEach(section => {
+                                                section.classList.toggle('active', section.id === `section-${name}`);
+                                            });
+                                            const map = {
+                                                games: 'tabGames',
+                                                questions: 'tabQuestions',
+                                                students: 'tabStudents',
+                                                play: 'tabPlay',
+                                                results: 'tabResults'
+                                            };
+                                            document.querySelectorAll('.panel-button').forEach(button => {
+                                                button.classList.toggle('active', button.id === map[name]);
+                                            });
+                                            currentSection = name;
+                                            if (name === 'students') renderStudentGrid();
+                                            if (name === 'questions') updateSelectedGameInfo();
+                                            if (name === 'play') updatePlayView();
+                                            if (name === 'results') cargarResultados();
+                                        }
 
-        function cargarJuegos() {
-            fetch('/api/juegos')
-                .then(r => r.json())
-                .then(data => {
-                    juegos = data;
-                    if (juegos.length && (currentGame === null || currentGame >= juegos.length)) {
-                        currentGame = 0;
-                    }
-                    renderGameList();
-                    updateSelectedGameInfo();
-                    cargarPreguntas();
-                });
-        }
+                                        function cargarJuegos() {
+                                            fetch('/api/juegos')
+                                                .then(r => r.json())
+                                                .then(data => {
+                                                    juegos = data;
+                                                    if (juegos.length && (currentGame === null || currentGame >= juegos.length)) {
+                                                        currentGame = 0;
+                                                    }
+                                                    renderGameList();
+                                                    updateSelectedGameInfo();
+                                                    cargarPreguntas();
+                                                });
+                                        }
 
-        function renderGameList() {
-            const list = document.getElementById('gameList');
-            list.innerHTML = '';
-            if (!juegos.length) {
-                list.innerHTML = '<div class="small-note">No hay juegos aún. Crea uno para comenzar.</div>';
-                return;
-            }
-            juegos.forEach((juego, index) => {
-                const item = document.createElement('div');
-                item.className = 'game-item' + (index === currentGame ? ' active' : '');
-                item.innerHTML = `
-                    <div>
-                        <div class="title">${juego.nombre || 'Juego sin nombre'}</div>
-                        <div class="meta small-note">${juego.descripcion || 'Sin descripción'}</div>
-                    </div>
-                    <div class="game-actions" style="margin-top: 1rem;">
-                        <button class="btn btn-secondary" type="button" onclick="selectGame(${index})">Abrir</button>
-                        <button class="btn btn-secondary" type="button" onclick="editarJuego(${index})">Editar</button>
-                        <button class="btn btn-danger" type="button" onclick="borrarJuego(${index})">Borrar</button>
-                    </div>
-                `;
-                list.appendChild(item);
-            });
-        }
+                                        function renderGameList() {
+                                            const list = document.getElementById('gameList');
+                                            list.innerHTML = '';
+                                            if (!juegos.length) {
+                                                list.innerHTML = '<div class="small-note">No hay juegos aún. Crea uno para comenzar.</div>';
+                                                return;
+                                            }
+                                            juegos.forEach((juego, index) => {
+                                                const item = document.createElement('div');
+                                                item.className = 'game-item' + (index === currentGame ? ' active' : '');
+                                                item.innerHTML = `
+                                                    <div>
+                                                        <div class="title">${juego.nombre || 'Juego sin nombre'}</div>
+                                                        <div class="meta small-note">${juego.descripcion || 'Sin descripción'}</div>
+                                                    </div>
+                                                    <div class="game-actions" style="margin-top: 1rem;">
+                                                        <button class="btn btn-secondary" type="button" onclick="selectGame(${index})">Abrir</button>
+                                                        <button class="btn btn-secondary" type="button" onclick="editarJuego(${index})">Editar</button>
+                                                        <button class="btn btn-danger" type="button" onclick="borrarJuego(${index})">Borrar</button>
+                                                    </div>
+                                                `;
+                                                list.appendChild(item);
+                                            });
+                                        }
 
-        function selectGame(index) {
-            currentGame = index;
-            renderGameList();
-            cargarPreguntas();
-            showSection('questions');
-        }
+                                        function selectGame(index) {
+                                            currentGame = index;
+                                            renderGameList();
+                                            cargarPreguntas();
+                                            showSection('questions');
+                                        }
 
-        function editarJuego(index) {
-            const juego = juegos[index];
-            if (!juego) return;
-            const nombre = prompt('Nuevo nombre del juego', juego.nombre || '');
-            if (nombre === null) return;
-            const descripcion = prompt('Nueva descripción', juego.descripcion || '');
-            juego.nombre = nombre.trim() || juego.nombre;
-            juego.descripcion = descripcion.trim() || juego.descripcion;
-            renderGameList();
-            updateSelectedGameInfo();
-            alert('Edición guardada en la interfaz. Implementa backend para persistir los cambios.');
-        }
+                                        function editarJuego(index) {
+                                            const juego = juegos[index];
+                                            if (!juego) return;
+                                            const nombre = prompt('Nuevo nombre del juego', juego.nombre || '');
+                                            if (nombre === null) return;
+                                            const descripcion = prompt('Nueva descripción', juego.descripcion || '');
+                                            fetch(`/api/juegos/${index}`, {
+                                                method: 'PUT',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ nombre: nombre.trim() || juego.nombre, descripcion: descripcion.trim() || juego.descripcion })
+                                            }).then(r => r.json()).then(data => {
+                                                if (!data.ok) return alert('No se pudo guardar los cambios');
+                                                cargarJuegos();
+                                            }).catch(err => {
+                                                console.error('Error actualizando juego', err);
+                                                alert('Error actualizando juego.');
+                                            });
+                                        }
 
-        function borrarJuego(index) {
-            if (!confirm('¿Eliminar este juego de la vista?')) return;
-            juegos.splice(index, 1);
-            if (currentGame !== null) {
-                if (index === currentGame) currentGame = null;
-                else if (index < currentGame) currentGame--;
-            }
-            renderGameList();
-            updateSelectedGameInfo();
-            cargarPreguntas();
-            alert('Eliminado en la interfaz. Agrega backend para persistir la eliminación.');
-        }
+                                        function borrarJuego(index) {
+                                            if (!confirm('¿Eliminar este juego?')) return;
+                                            fetch(`/api/juegos/${index}`, { method: 'DELETE' })
+                                                .then(r => r.json())
+                                                .then(data => {
+                                                    if (!data.ok) return alert('No se pudo borrar el juego');
+                                                    currentGame = null;
+                                                    cargarJuegos();
+                                                    updateSelectedGameInfo();
+                                                    cargarPreguntas();
+                                                }).catch(err => {
+                                                    console.error('Error borrando juego', err);
+                                                    alert('Error borrando juego.');
+                                                });
+                                        }
 
-        function guardarJuego() {
-            const nombre = document.getElementById('newGameName').value.trim();
-            const descripcion = document.getElementById('newGameDescription').value.trim();
-            if (!nombre) return alert('Ingresa un nombre de juego');
-            console.log('Creando juego:', nombre, descripcion);
-            fetch('/api/juegos', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ nombre, descripcion })
-            }).then(() => {
-                console.log('Juego creado exitosamente');
-                document.getElementById('newGameName').value = '';
-                document.getElementById('newGameDescription').value = '';
-                cargarJuegos();
-                showSection('games');
-            }).catch(err => {
-                console.log('Error al crear juego:', err);
-                alert('Error al crear juego: ' + err.message);
-            });
-        }
+                                        function guardarJuego() {
+                                            const nombre = document.getElementById('newGameName').value.trim();
+                                            const descripcion = document.getElementById('newGameDescription').value.trim();
+                                            if (!nombre) return alert('Ingresa un nombre de juego');
+                                            console.log('Creando juego:', nombre, descripcion);
+                                            fetch('/api/juegos', {
+                                                method: 'POST',
+                                                headers: {'Content-Type': 'application/json'},
+                                                body: JSON.stringify({ nombre, descripcion })
+                                            }).then(r => r.json()).then(data => {
+                                                console.log('Juego creado exitosamente');
+                                                document.getElementById('newGameName').value = '';
+                                                document.getElementById('newGameDescription').value = '';
+                                                if (typeof data.id === 'number') {
+                                                    currentGame = data.id;
+                                                }
+                                                cargarJuegos();
+                                                showSection('games');
+                                            }).catch(err => {
+                                                console.log('Error al crear juego:', err);
+                                                alert('Error al crear juego: ' + err.message);
+                                            });
+                                        }
 
-        function cargarPreguntas() {
-            if (currentGame === null || !juegos[currentGame]) {
-                preguntas = [];
-                renderQuestions();
-                updateSelectedGameInfo();
-                return;
-            }
-            fetch(`/api/juegos/${currentGame}/preguntas`)
-                .then(r => r.json())
-                .then(data => {
-                    preguntas = data;
-                    preguntaActualIdx = 0;
-                    renderQuestions();
-                    mostrarPreguntaActual();
-                });
-        }
+                                        function cargarPreguntas() {
+                                            if (currentGame === null || !juegos[currentGame]) {
+                                                preguntas = [];
+                                                renderQuestions();
+                                                updateSelectedGameInfo();
+                                                return;
+                                            }
+                                            fetch(`/api/juegos/${currentGame}/preguntas`)
+                                                .then(r => r.json())
+                                                .then(data => {
+                                                    preguntas = data;
+                                                    preguntaActualIdx = 0;
+                                                    renderQuestions();
+                                                    mostrarPreguntaActual();
+                                                });
+                                        }
 
-        function renderQuestions() {
-            const list = document.getElementById('questionList');
-            if (!list) return;
-            list.innerHTML = '';
-            if (!preguntas.length) {
-                list.innerHTML = '<div class="small-note">Este juego no tiene preguntas aún.</div>';
-                return;
-            }
-            preguntas.forEach((pregunta, index) => {
-                const item = document.createElement('div');
-                item.className = 'question-item' + (index === preguntaActualIdx ? ' active' : '');
-                item.innerHTML = `
-                    <div class="title">${pregunta.texto}</div>
-                    <div class="meta small-note">${pregunta.opciones.A} · ${pregunta.opciones.B} · ${pregunta.opciones.C} · ${pregunta.opciones.D}</div>
-                    <div class="small-note" style="color: var(--color-c); font-weight: 500;">Respuesta correcta: ${pregunta.correcta}</div>
-                `;
-                item.onclick = () => {
-                    preguntaActualIdx = index;
-                    mostrarPreguntaActual();
-                    renderQuestions();
-                };
-                list.appendChild(item);
-            });
-        }
+                                        function renderQuestions() {
+                                            const list = document.getElementById('questionList');
+                                            if (!list) return;
+                                            list.innerHTML = '';
+                                            if (!preguntas.length) {
+                                                list.innerHTML = '<div class="small-note">Este juego no tiene preguntas aún.</div>';
+                                                return;
+                                            }
+                                            preguntas.forEach((pregunta, index) => {
+                                                const item = document.createElement('div');
+                                                item.className = 'question-item' + (index === preguntaActualIdx ? ' active' : '');
+                                                item.innerHTML = `
+                                                    <div class="title">${pregunta.texto}</div>
+                                                    <div class="meta small-note">${pregunta.opciones.A} · ${pregunta.opciones.B} · ${pregunta.opciones.C} · ${pregunta.opciones.D}</div>
+                                                    <div class="small-note" style="color: var(--color-c); font-weight: 500;">Respuesta correcta: ${pregunta.correcta}</div>
+                                                    <div class="btn-group" style="margin-top: 0.75rem;">
+                                                        <button class="btn btn-secondary" type="button" onclick="event.stopPropagation(); moverPregunta(${index}, -1)">Subir</button>
+                                                        <button class="btn btn-secondary" type="button" onclick="event.stopPropagation(); moverPregunta(${index}, 1)">Bajar</button>
+                                                    </div>
+                                                `;
+                                                item.onclick = () => {
+                                                    preguntaActualIdx = index;
+                                                    mostrarPreguntaActual();
+                                                    renderQuestions();
+                                                };
+                                                list.appendChild(item);
+                                            });
+                                        }
 
-        function updateSelectedGameInfo() {
-            const selectedGame = currentGame !== null ? juegos[currentGame] : null;
-            document.getElementById('selectedGameName').value = selectedGame ? `${selectedGame.nombre || 'Juego'} — ${selectedGame.descripcion || ''}` : '';
-        }
+                                        function updateSelectedGameInfo() {
+                                            const selectedGame = currentGame !== null ? juegos[currentGame] : null;
+                                            document.getElementById('selectedGameName').value = selectedGame ? `${selectedGame.nombre || 'Juego'} — ${selectedGame.descripcion || ''}` : '';
+                                        }
 
-        function mostrarPreguntaActual() {
-            const number = document.getElementById('playQuestionNumber');
-            const text = document.getElementById('playQuestionText');
-            const options = document.getElementById('playQuestionOptions');
-            const results = document.getElementById('playResultsBars');
+                                        function mostrarPreguntaActual() {
+                                            const number = document.getElementById('playQuestionNumber');
+                                            const text = document.getElementById('playQuestionText');
+                                            const options = document.getElementById('playQuestionOptions');
+                                            const results = document.getElementById('playResultsBars');
 
-            if (!preguntas.length) {
-                number.textContent = 'Sin preguntas en este juego';
-                text.textContent = 'Agrega preguntas en el editor y vuelve a modo juego.';
-                options.style.display = 'none';
-                results.style.display = 'none';
-                return;
-            }
+                                            if (!preguntas.length) {
+                                                number.textContent = 'Sin preguntas en este juego';
+                                                text.textContent = 'Agrega preguntas en el editor y vuelve a modo juego.';
+                                                options.style.display = 'none';
+                                                results.style.display = 'none';
+                                                return;
+                                            }
 
-            const pregunta = preguntas[preguntaActualIdx];
-            number.textContent = `Pregunta ${preguntaActualIdx + 1}/${preguntas.length}`;
-            text.textContent = pregunta.texto;
-            options.style.display = 'grid';
-            options.innerHTML = `
-                <div class="option a"><span>A</span>${pregunta.opciones.A}</div>
-                <div class="option b"><span>B</span>${pregunta.opciones.B}</div>
-                <div class="option c"><span>C</span>${pregunta.opciones.C}</div>
-                <div class="option d"><span>D</span>${pregunta.opciones.D}</div>
-            `;
-            results.style.display = 'grid';
+                                            const pregunta = preguntas[preguntaActualIdx];
+                                            number.textContent = `Pregunta ${preguntaActualIdx + 1}/${preguntas.length}`;
+                                            text.textContent = pregunta.texto;
+                                            options.style.display = 'grid';
+                                            options.innerHTML = `
+                                                <div class="option a"><span>A</span>${pregunta.opciones.A}</div>
+                                                <div class="option b"><span>B</span>${pregunta.opciones.B}</div>
+                                                <div class="option c"><span>C</span>${pregunta.opciones.C}</div>
+                                                <div class="option d"><span>D</span>${pregunta.opciones.D}</div>
+                                            `;
+                                            results.style.display = 'grid';
 
-            fetch('/api/sesion/pregunta', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    juego_idx: currentGame,
-                    pregunta_idx: preguntaActualIdx,
-                    pregunta: {
-                        texto: pregunta.texto,
-                        correcta: pregunta.correcta,
-                    }
-                })
-            });
-        }
+                                            fetch('/api/sesion/pregunta', {
+                                                method: 'POST',
+                                                headers: {'Content-Type': 'application/json'},
+                                                body: JSON.stringify({
+                                                    juego_idx: currentGame,
+                                                    pregunta_idx: preguntaActualIdx,
+                                                    pregunta: {
+                                                        texto: pregunta.texto,
+                                                        correcta: pregunta.correcta,
+                                                    }
+                                                })
+                                            });
+                                        }
 
-        function guardarPregunta() {
-            if (currentGame === null || !juegos[currentGame]) return alert('Crea y selecciona un juego antes.');
-            const pregunta = {
-                texto: document.getElementById('newQuestion').value.trim(),
-                opciones: {
-                    A: document.getElementById('newOptA').value.trim(),
-                    B: document.getElementById('newOptB').value.trim(),
-                    C: document.getElementById('newOptC').value.trim(),
-                    D: document.getElementById('newOptD').value.trim(),
-                },
-                correcta: document.getElementById('correctAnswer').value
-            };
-            if (!pregunta.texto) return alert('Completa la pregunta');
-            console.log('Guardando pregunta:', pregunta);
-            fetch(`/api/juegos/${currentGame}/preguntas`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(pregunta)
-            }).then(() => {
-                console.log('Pregunta guardada');
-                ['newQuestion', 'newOptA', 'newOptB', 'newOptC', 'newOptD'].forEach(id => document.getElementById(id).value = '');
-                cargarPreguntas();
-                showSection('questions');
-            }).catch(err => {
-                console.log('Error al guardar pregunta:', err);
-                alert('Error al guardar pregunta: ' + err.message);
-            });
-        }
+                                        function guardarPregunta() {
+                                            if (currentGame === null || !juegos[currentGame]) return alert('Crea y selecciona un juego antes.');
+                                            const pregunta = {
+                                                texto: document.getElementById('newQuestion').value.trim(),
+                                                opciones: {
+                                                    A: document.getElementById('newOptA').value.trim(),
+                                                    B: document.getElementById('newOptB').value.trim(),
+                                                    C: document.getElementById('newOptC').value.trim(),
+                                                    D: document.getElementById('newOptD').value.trim(),
+                                                },
+                                                correcta: document.getElementById('correctAnswer').value
+                                            };
+                                            if (!pregunta.texto) return alert('Completa la pregunta');
+                                            console.log('Guardando pregunta:', pregunta);
+                                            fetch(`/api/juegos/${currentGame}/preguntas`, {
+                                                method: 'POST',
+                                                headers: {'Content-Type': 'application/json'},
+                                                body: JSON.stringify(pregunta)
+                                            }).then(() => {
+                                                console.log('Pregunta guardada');
+                                                ['newQuestion', 'newOptA', 'newOptB', 'newOptC', 'newOptD'].forEach(id => document.getElementById(id).value = '');
+                                                cargarPreguntas();
+                                                showSection('questions');
+                                            }).catch(err => {
+                                                console.log('Error al guardar pregunta:', err);
+                                                alert('Error al guardar pregunta: ' + err.message);
+                                            });
+                                        }
 
-        function guardarSesion() {
-            if (currentGame === null || !preguntas.length) return alert('Selecciona un juego y pregunta antes de guardar.');
-            if (!Object.keys(respuestas).length) return alert('No hay respuestas para guardar. Escanea primero.');
-            const pregunta = preguntas[preguntaActualIdx];
-            const juego = juegos[currentGame] || {};
-            console.log('Guardando sesión con respuestas:', respuestas, 'Alumnos:', alumnosNombres);
-            fetch('/api/sesion/guardar', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    juego: {
-                        id: currentGame,
-                        nombre: juego.nombre,
-                        descripcion: juego.descripcion,
-                    },
-                    pregunta: {
-                        pregunta_idx: preguntaActualIdx,
-                        texto: pregunta.texto,
-                        correcta: pregunta.correcta,
-                        opciones: pregunta.opciones,
-                    },
-                    respuestas: respuestas,
-                    alumnos: alumnosNombres,
-                })
-            }).then(r => r.json())
-                .then(data => {
-                    console.log('Respuesta del servidor:', data);
-                    if (data.ok) {
-                        alert('Resultados guardados correctamente.');
-                        resetRespuestas();
-                    } else {
-                        alert(data.error || 'No se pudieron guardar los resultados.');
-                    }
-                }).catch(err => {
-                    console.log('Error al guardar sesión:', err);
-                    alert('Error al guardar sesión: ' + err.message);
-                });
-        }
+                                        function moverPregunta(index, direction) {
+                                            if (!preguntas.length) return;
+                                            const newIndex = index + direction;
+                                            if (newIndex < 0 || newIndex >= preguntas.length) return;
+                                            const item = preguntas.splice(index, 1)[0];
+                                            preguntas.splice(newIndex, 0, item);
+                                            fetch(`/api/juegos/${currentGame}/preguntas`, {
+                                                method: 'PUT',
+                                                headers: {'Content-Type': 'application/json'},
+                                                body: JSON.stringify({ preguntas })
+                                            }).then(r => r.json())
+                                                .then(data => {
+                                                    if (!data.ok) return alert('No se pudo reordenar la pregunta');
+                                                    preguntaActualIdx = newIndex;
+                                                    renderQuestions();
+                                                    mostrarPreguntaActual();
+                                                }).catch(err => {
+                                                    console.error('Error reordenando:', err);
+                                                    alert('Error reordenando pregunta');
+                                                });
+                                        }
 
-        function prevQuestion() {
-            if (!preguntas.length) return;
-            preguntaActualIdx = Math.max(0, preguntaActualIdx - 1);
-            mostrarPreguntaActual();
-            renderQuestions();
-        }
+                                        function empezarJuego() {
+                                            if (jugando) return;
+                                            if (currentGame === null || !preguntas.length) return alert('Selecciona un juego y una pregunta antes de iniciar.');
+                                            resetRespuestas();
+                                            iniciarEscaneo();
+                                            jugando = true;
+                                            updatePlayButtons();
+                                            updatePlayStatus('Escaneo iniciado. Respuestas en vivo.');
+                                        }
 
-        // --- SOLUCIÓN AL CÓDIGO CORTADO ---
-        function nextQuestion() {
-            if (!preguntas.length) return;
-            preguntaActualIdx = Math.min(preguntas.length - 1, preguntaActualIdx + 1);
-            mostrarPreguntaActual();
-            renderQuestions();
-        }
+                                        function finalizarJuego() {
+                                            if (!jugando) return alert('No hay una partida iniciada.');
+                                            guardarSesion();
+                                            pararEscaneo();
+                                            jugando = false;
+                                            updatePlayButtons();
+                                            updatePlayStatus('Partida finalizada. Resultados guardados.');
+                                        }
 
-        // Funciones de utilidad: gestión de alumnos y escaneo
-        function cargarNombresAlumnos() {
-            fetch('/api/alumnos')
-                .then(r => r.json())
-                .then(data => {
-                    alumnosNombres = data || {};
-                    renderStudentGrid();
-                }).catch(err => console.error('Error cargando alumnos', err));
+                                        function updatePlayButtons() {
+                                            document.getElementById('btnStartGame').disabled = jugando;
+                                            document.getElementById('btnFinishGame').disabled = !jugando;
+                                        }
+
+                                        function updatePlayStatus(text) {
+                                            const status = document.getElementById('playStatus');
+                                            status.textContent = text || (jugando ? 'Partida en curso.' : 'No se ha iniciado ninguna partida.');
+                                        }
+
+                                        function cargarResultados() {
+                                            fetch('/api/partidas')
+                                                .then(r => r.json())
+                                                .then(data => {
+                                                    sesiones = data || [];
+                                                    const grouped = {};
+                                                    sesiones.forEach((sesion, index) => {
+                                                        const juegoId = sesion.juego?.id ?? 0;
+                                                        grouped[juegoId] = grouped[juegoId] || { juego: sesion.juego, sesiones: [] };
+                                                        grouped[juegoId].sesiones.push({ ...sesion, idx: index });
+                                                    });
+                                                    const container = document.getElementById('resultsList');
+                                                    container.innerHTML = '';
+                                                    if (!Object.keys(grouped).length) {
+                                                        container.innerHTML = '<div class="small-note">No hay partidas guardadas aún.</div>';
+                                                        return;
+                                                    }
+                                                    for (const key of Object.keys(grouped)) {
+                                                        const group = grouped[key];
+                                                        const gameCard = document.createElement('div');
+                                                        gameCard.className = 'card';
+                                                        gameCard.style.marginBottom = '1rem';
+                                                        gameCard.innerHTML = `
+                                                            <div class="section-card-header">
+                                                                <h2>${group.juego?.nombre || 'Juego'}</h2>
+                                                                <p class="small-note">${group.sesiones.length} partidas guardadas</p>
+                                                            </div>
+                                                        `;
+                                                        const list = document.createElement('div');
+                                                        list.className = 'question-list';
+                                                        group.sesiones.forEach(s => {
+                                                            const item = document.createElement('div');
+                                                            const conteo = { A: 0, B: 0, C: 0, D: 0 };
+                                                            const respuestas = s.respuestas || {};
+                                                            Object.values(respuestas).forEach(r => { if (conteo[r] !== undefined) conteo[r] += 1; });
+                                                            const total = Object.values(conteo).reduce((sum, n) => sum + n, 0);
+                                                            const pct = letter => total ? `${Math.round((conteo[letter] / total) * 100)}%` : '0%';
+                                                            item.className = 'question-item';
+                                                            item.innerHTML = `
+                                                                <div class="title">${s.pregunta?.texto || 'Pregunta'}</div>
+                                                                <div class="small-note">${new Date(s.timestamp).toLocaleString()}</div>
+                                                                <div class="meta small-note">A: ${conteo.A} (${pct('A')}) · B: ${conteo.B} (${pct('B')}) · C: ${conteo.C} (${pct('C')}) · D: ${conteo.D} (${pct('D')})</div>
+                                                                <div class="btn-group" style="margin-top: 0.75rem;">
+                                                                    <button class="btn btn-secondary" type="button" onclick="mostrarDetallesSesion(${s.idx})">Ver detalles de partida</button>
+                                                                    <button class="btn btn-primary" type="button" onclick="descargarSesion(${s.idx})">Descargar CSV</button>
+                                                                </div>
+                                                            `;
+                                                            list.appendChild(item);
+                                                        });
+                                                        gameCard.appendChild(list);
+                                                        container.appendChild(gameCard);
+                                                    }
+                                                }).catch(err => {
+                                                    console.error('Error cargando resultados', err);
+                                                    document.getElementById('resultsList').innerHTML = '<div class="small-note">Error cargando resultados.</div>';
+                                                });
+                                        }
+
+                                        function mostrarDetallesSesion(idx) {
+                                            const sesion = sesiones[idx];
+                                            if (!sesion) return;
+                                            const respuestas = sesion.respuestas || {};
+                                            const pregunta = sesion.pregunta || {};
+                                            const lista = Object.keys(respuestas).sort((a, b) => Number(a) - Number(b)).map(id => {
+                                                const nombre = sesion.alumnos?.[id]?.nombre || `Alumno ${Number(id) + 1}`;
+                                                const resp = respuestas[id] || '';
+                                                const score = resp ? (resp === pregunta.correcta ? 1 : -1) : 0;
+                                                return `<tr><td>#${Number(id) + 1}</td><td>${nombre}</td><td>${resp}</td><td>${score}</td></tr>`;
+                                            }).join('');
+                                            const content = `
+                                                <h2>Detalle de la partida</h2>
+                                                <p class="small-note">Partida #${sesion.partida_id ?? idx} · ${new Date(sesion.timestamp).toLocaleString()}</p>
+                                                <p><strong>Pregunta:</strong> ${pregunta.texto || ''}</p>
+                                                <p><strong>Respuesta correcta:</strong> ${pregunta.correcta || ''}</p>
+                                                <div style="overflow-x:auto; margin-top:1rem;">
+                                                    <table style="width:100%; border-collapse: collapse;">
+                                                        <thead>
+                                                            <tr style="text-align:left; border-bottom: 1px solid var(--border);">
+                                                                <th>#</th><th>Alumno</th><th>Respuesta</th><th>Puntaje</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>${lista}</tbody>
+                                                    </table>
+                                                </div>
+                                            `;
+                                            document.getElementById('modalResultsContent').innerHTML = content;
+                                            document.getElementById('modalResults').classList.add('visible');
+                                        }
+
+                                        function descargarSesion(idx) {
+                                            window.location.href = `/api/sesion/${idx}/export`;
+                                        }
+
+                                        function guardarSesion() {
+                                            if (currentGame === null || !preguntas.length) return alert('Selecciona un juego y pregunta antes de guardar.');
+                                            if (!Object.keys(respuestas).length) return alert('No hay respuestas para guardar. Escanea primero.');
+                                            const pregunta = preguntas[preguntaActualIdx];
+                                            const juego = juegos[currentGame] || {};
+                                            console.log('Guardando sesión con respuestas:', respuestas, 'Alumnos:', alumnosNombres);
+                                            fetch('/api/sesion/guardar', {
+                                                method: 'POST',
+                                                headers: {'Content-Type': 'application/json'},
+                                                body: JSON.stringify({
+                                                    juego: {
+                                                        id: currentGame,
+                                                        nombre: juego.nombre,
+                                                        descripcion: juego.descripcion,
+                                                    },
+                                                    pregunta: {
+                                                        pregunta_idx: preguntaActualIdx,
+                                                        texto: pregunta.texto,
+                                                        correcta: pregunta.correcta,
+                                                        opciones: pregunta.opciones,
+                                                    },
+                                                    respuestas: respuestas,
+                                                    alumnos: alumnosNombres,
+                                                })
+                                            }).then(r => r.json())
+                                                .then(data => {
+                                                    console.log('Respuesta del servidor:', data);
+                                                    if (data.ok) {
+                                                        alert('Resultados guardados correctamente.');
+                                                        resetRespuestas();
+                                                    } else {
+                                                        alert(data.error || 'No se pudieron guardar los resultados.');
+                                                    }
+                                                }).catch(err => {
+                                                    console.log('Error al guardar sesión:', err);
+                                                    alert('Error al guardar sesión: ' + err.message);
+                                                });
+                                        }
+
+                                        function prevQuestion() {
+                                            if (!preguntas.length) return;
+                                            preguntaActualIdx = Math.max(0, preguntaActualIdx - 1);
+                                            mostrarPreguntaActual();
+                                            renderQuestions();
+                                        }
+
+                                        // --- SOLUCIÓN AL CÓDIGO CORTADO ---
+                                        function nextQuestion() {
+                                            if (!preguntas.length) return;
+                                            preguntaActualIdx = Math.min(preguntas.length - 1, preguntaActualIdx + 1);
+                                            mostrarPreguntaActual();
+                                            renderQuestions();
+                                        }
+
+                                        // Funciones de utilidad: gestión de alumnos y escaneo
+                                        function cargarNombresAlumnos() {
+                                            fetch('/api/alumnos')
+                                                .then(r => r.json())
+                                                .then(data => {
+                                                    alumnosNombres = data || {};
+                                                    renderStudentGrid();
+                                                }).catch(err => console.error('Error cargando alumnos', err));
         }
 
         function renderStudentGrid() {
@@ -971,6 +1132,13 @@
 
         function updatePlayView() { mostrarPreguntaActual(); renderQuestions(); }
 
+        function initApp() {
+            cargarJuegos();
+            cargarNombresAlumnos();
+            updatePlayButtons();
+            updatePlayStatus();
+        }
+
         // Listener para importar archivo de alumnos
         document.getElementById('importFile').addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -986,7 +1154,7 @@
                 }).catch(err => alert('Error importando: ' + err.message));
         });
 
-        // Arrancamos app (inicialización ya realizada arriba)
+        initApp();
 
     </script>
 </body>

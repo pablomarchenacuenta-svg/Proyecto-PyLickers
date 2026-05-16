@@ -25,6 +25,7 @@ import argparse
 import subprocess
 from datetime import datetime
 import io
+import csv
 import zipfile
 import signal
 
@@ -44,19 +45,43 @@ app = Flask(__name__)
 # ── Configuración ────────────────────────────────
 NUM_ALUMNOS = 30  # Número máximo de alumnos, configurable por argumento
 DATA_FILE = "pylickers_data.json"
+DETECTOR_KEEP_RUNNING = True
 
 
 def cargar_datos():
+    datos = {}
     if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            datos = json.load(f)
-    else:
-        datos = {}
+        try:
+            with open(DATA_FILE, "r", encoding="utf-8") as f:
+                datos = json.load(f)
+        except (json.JSONDecodeError, ValueError) as exc:
+            backup_file = DATA_FILE + ".corrupt.bak"
+            try:
+                os.replace(DATA_FILE, backup_file)
+            except Exception:
+                backup_file = None
+            print(f"Advertencia: {DATA_FILE} corrupto y no pudo cargarse. Se usará un archivo nuevo.{'' if not backup_file else ' Backup:' + backup_file}")
+            datos = {}
+        except Exception as exc:
+            print(f"Error leyéndo {DATA_FILE}: {exc}")
+            datos = {}
 
     datos.setdefault("preguntas", [])
     datos.setdefault("sesiones", [])
+    if "partidas" not in datos:
+        datos["partidas"] = datos["sesiones"]
+    else:
+        datos.setdefault("partidas", [])
+    if "sesiones" not in datos:
+        datos["sesiones"] = datos["partidas"]
     datos.setdefault("alumnos", {})
     datos.setdefault("juegos", [{"nombre": "General", "descripcion": "Juego general", "preguntas": []}])
+    if not datos["juegos"]:
+        datos["juegos"] = [{"nombre": "General", "descripcion": "Juego general", "preguntas": []}]
+
+    if not os.path.exists(DATA_FILE) or (isinstance(datos, dict) and not datos):
+        guardar_datos(datos)
+
     return datos
 
 
@@ -109,12 +134,50 @@ def api_crear_juego():
     return jsonify({"ok": True, "id": len(datos["juegos"]) - 1})
 
 
+@app.route("/api/juegos/<int:idx>", methods=["PUT"])
+def api_actualizar_juego(idx):
+    datos = cargar_datos()
+    juegos = datos["juegos"]
+    if 0 <= idx < len(juegos):
+        data = request.json or {}
+        juegos[idx]["nombre"] = data.get("nombre", juegos[idx].get("nombre", "Juego sin nombre"))
+        juegos[idx]["descripcion"] = data.get("descripcion", juegos[idx].get("descripcion", ""))
+        guardar_datos(datos)
+        return jsonify({"ok": True})
+    return jsonify({"error": "Juego no encontrado"}), 404
+
+
+@app.route("/api/juegos/<int:idx>", methods=["DELETE"])
+def api_borrar_juego(idx):
+    datos = cargar_datos()
+    juegos = datos["juegos"]
+    if 0 <= idx < len(juegos):
+        juegos.pop(idx)
+        guardar_datos(datos)
+        return jsonify({"ok": True})
+    return jsonify({"error": "Juego no encontrado"}), 404
+
+
 @app.route("/api/juegos/<int:idx>/preguntas", methods=["GET"])
 def api_preguntas_juego(idx):
     datos = cargar_datos()
     juegos = datos["juegos"]
     if 0 <= idx < len(juegos):
         return jsonify(juegos[idx].get("preguntas", []))
+    return jsonify({"error": "Juego no encontrado"}), 404
+
+
+@app.route("/api/juegos/<int:idx>/preguntas", methods=["PUT"])
+def api_actualizar_preguntas_juego(idx):
+    datos = cargar_datos()
+    juegos = datos["juegos"]
+    if 0 <= idx < len(juegos):
+        preguntas = request.json.get("preguntas") if request.json else None
+        if isinstance(preguntas, list):
+            juegos[idx]["preguntas"] = preguntas
+            guardar_datos(datos)
+            return jsonify({"ok": True})
+        return jsonify({"error": "Preguntas inválidas"}), 400
     return jsonify({"error": "Juego no encontrado"}), 404
 
 
@@ -227,8 +290,12 @@ def api_iniciar():
 def api_parar():
     sesion_activa["activa"] = False
     global detector_proc
-    if detector_proc is None:
+    if detector_proc is None or detector_proc.poll() is not None:
+        detector_proc = None
         return jsonify({"ok": True, "msg": "No había proceso del detector"})
+
+    if DETECTOR_KEEP_RUNNING:
+        return jsonify({"ok": True, "msg": "Sesión detenida. El detector permanece listo para el siguiente inicio."})
 
     try:
         # Try graceful termination
@@ -254,7 +321,7 @@ def api_parar():
 def api_resultados_juego(idx):
     datos = cargar_datos()
     juegos = datos.get('juegos', [])
-    sesiones = datos.get('sesiones', [])
+    partidas = datos.get('partidas', [])
     if idx < 0 or idx >= len(juegos):
         return jsonify({'error': 'Juego no encontrado'}), 404
 
@@ -263,10 +330,10 @@ def api_resultados_juego(idx):
     total_students = NUM_ALUMNOS
 
     resultados = []
-    # Para cada pregunta, buscar la última sesión guardada de ese juego+pregunta
+    # Para cada pregunta, buscar la última partida guardada de ese juego+pregunta
     for qidx, pregunta in enumerate(preguntas):
         last = None
-        for s in reversed(sesiones):
+        for s in reversed(partidas):
             sj = s.get('juego', {})
             sp = s.get('pregunta', {})
             if sj.get('id') == idx and sp.get('pregunta_idx') == qidx:
@@ -306,16 +373,18 @@ def api_resultados_juego(idx):
 @app.route('/api/resultados/clear', methods=['POST'])
 def api_resultados_clear():
     datos = cargar_datos()
-    sesiones = datos.get('sesiones', [])
+    partidas = datos.get('partidas', [])
     data = request.json or {}
     game = data.get('game')
     removed = 0
     if game is None:
-        removed = len(sesiones)
+        removed = len(partidas)
+        datos['partidas'] = []
         datos['sesiones'] = []
     else:
-        nuevas = [s for s in sesiones if s.get('juego', {}).get('id') != int(game)]
-        removed = len(sesiones) - len(nuevas)
+        nuevas = [p for p in partidas if p.get('juego', {}).get('id') != int(game)]
+        removed = len(partidas) - len(nuevas)
+        datos['partidas'] = nuevas
         datos['sesiones'] = nuevas
     guardar_datos(datos)
     return jsonify({'ok': True, 'removed': removed})
@@ -336,7 +405,7 @@ def api_resultados_export():
 
     datos = cargar_datos()
     juegos = datos.get('juegos', [])
-    sesiones = [s for s in datos.get('sesiones', []) if s.get('juego', {}).get('id') == game]
+    partidas = [p for p in datos.get('partidas', []) if p.get('juego', {}).get('id') == game]
     if game < 0 or game >= len(juegos):
         return jsonify({'error': 'Juego no encontrado'}), 404
 
@@ -352,7 +421,7 @@ def api_resultados_export():
 
     for qidx in range(n_q):
         last = None
-        for s in reversed(sesiones):
+        for s in reversed(partidas):
             sp = s.get('pregunta', {})
             if sp.get('pregunta_idx') == qidx:
                 last = s
@@ -455,6 +524,7 @@ def api_guardar_sesion():
         juego['id'] = juego_id
 
     registro = {
+        "partida_id": len(datos.get("partidas", [])),
         "timestamp": datetime.now().isoformat(),
         "juego": juego,
         "pregunta": pregunta,
@@ -462,10 +532,40 @@ def api_guardar_sesion():
         "alumnos": alumnos,
         "total_respuestas": len(respuestas),
     }
-    datos.setdefault("sesiones", []).append(registro)
+    datos.setdefault("partidas", []).append(registro)
+    datos.setdefault("sesiones", datos["partidas"])
     guardar_datos(datos)
-    print(f"Sesión guardada: {len(respuestas)} respuestas")
+    print(f"Partida guardada: {len(respuestas)} respuestas")
     return jsonify({"ok": True})
+
+
+@app.route("/api/sesion/<int:session_idx>/export")
+def api_exportar_sesion(session_idx):
+    datos = cargar_datos()
+    sesiones = datos.get("sesiones", [])
+    if session_idx < 0 or session_idx >= len(sesiones):
+        return jsonify({"error": "Sesión no encontrada"}), 404
+    sesion = sesiones[session_idx]
+    pregunta = sesion.get("pregunta", {})
+    correcta = pregunta.get("correcta")
+    respuestas = sesion.get("respuestas", {})
+    alumnos = sesion.get("alumnos", {})
+
+    csv_buffer = io.StringIO()
+    writer = csv.writer(csv_buffer)
+    writer.writerow(["Alumno", "Respuesta", "Correcta", "Puntuación"])
+    for i in range(NUM_ALUMNOS):
+        alumno = alumnos.get(str(i), {}).get("nombre", f"Alumno {i + 1}")
+        respuesta = respuestas.get(str(i), "")
+        puntaje = 0
+        if respuesta:
+            puntaje = 1 if respuesta == correcta else -1
+        writer.writerow([alumno, respuesta, correcta, puntaje])
+
+    output = csv_buffer.getvalue()
+    response = Response(output, mimetype="text/csv")
+    response.headers["Content-Disposition"] = f"attachment; filename=sesion_{session_idx}_puntaje.csv"
+    return response
 
 
 @app.route("/api/sesion/respuestas", methods=["POST"])
@@ -476,15 +576,16 @@ def api_recibir_respuestas():
     return jsonify({"ok": True})
 
 
+@app.route("/api/partidas")
 @app.route("/api/sesiones")
-def api_sesiones():
+def api_partidas():
     datos = cargar_datos()
-    sesiones = datos.get("sesiones", [])
-    # Incluir nombres de alumnos en cada sesión
+    partidas = datos.get("partidas", [])
+    # Incluir nombres de alumnos en cada partida
     alumnos = datos.get("alumnos", {})
-    for sesion in sesiones:
-        sesion["alumnos"] = alumnos
-    return jsonify(sesiones)
+    for partida in partidas:
+        partida["alumnos"] = alumnos
+    return jsonify(partidas)
 
 
 if __name__ == "__main__":
