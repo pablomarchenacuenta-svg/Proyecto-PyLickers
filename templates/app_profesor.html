@@ -139,14 +139,20 @@
                                             margin-bottom: 0.5rem;
                                         }
 
-                                        .btn-primary { 
-                                            background: var(--primary); 
-                                            color: white; 
+                                        .btn-primary {
+                                            background: var(--primary);
+                                            color: white;
                                         }
-                                        
-                                        .btn-primary:hover { 
-                                            background: var(--primary-hover); 
+
+                                        .btn-primary:hover {
+                                            background: var(--primary-hover);
                                             box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+                                        }
+
+                                        .btn-primary:disabled {
+                                            background: #CCCCCC;
+                                            cursor: not-allowed;
+                                            opacity: 0.6;
                                         }
 
                                         .btn-secondary { 
@@ -159,14 +165,22 @@
                                             background: var(--hover-bg); 
                                         }
 
-                                        .btn-danger { 
-                                            background: var(--card-bg); 
+                                        .btn-danger {
+                                            background: var(--card-bg);
                                             color: var(--color-a);
                                             border: 1px solid var(--border);
                                         }
 
                                         .btn-danger:hover {
                                             background: #FCE8E6;
+                                        }
+
+                                        .btn-danger:disabled {
+                                            background: #F5F5F5;
+                                            color: #CCCCCC;
+                                            border-color: #CCCCCC;
+                                            cursor: not-allowed;
+                                            opacity: 0.6;
                                         }
 
                                         .btn-group { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-right: 0;}
@@ -456,37 +470,44 @@
                                                             <p class="small-note">Avanza pregunta a pregunta y escanea las respuestas en tiempo real.</p>
                                                         </div>
                                                     </div>
-                                                    <div class="question-display" id="playQuestionDisplay">
-                                                        <div class="number" id="playQuestionNumber">Selecciona una pregunta</div>
-                                                        <div class="text" id="playQuestionText">En este modo verás una pregunta grande mientras escaneas.</div>
-                                                        <div class="options" id="playQuestionOptions" style="display:none;"></div>
-                                                    </div>
-                                                    <div class="results-bars" id="playResultsBars" style="display:none;">
-                                                        <div class="bar-row">
-                                                            <div class="bar-label">A <span class="bar-count" id="playCountA">0</span></div>
-                                                            <div class="bar-track"><div class="bar-fill a" id="playBarA" style="width:0%"></div></div>
-                                                        </div>
-                                                        <div class="bar-row">
-                                                            <div class="bar-label">B <span class="bar-count" id="playCountB">0</span></div>
-                                                            <div class="bar-track"><div class="bar-fill b" id="playBarB" style="width:0%"></div></div>
-                                                        </div>
-                                                        <div class="bar-row">
-                                                            <div class="bar-label">C <span class="bar-count" id="playCountC">0</span></div>
-                                                            <div class="bar-track"><div class="bar-fill c" id="playBarC" style="width:0%"></div></div>
-                                                        </div>
-                                                        <div class="bar-row">
-                                                            <div class="bar-label">D <span class="bar-count" id="playCountD">0</span></div>
-                                                            <div class="bar-track"><div class="bar-fill d" id="playBarD" style="width:0%"></div></div>
+                                                    <div id="playInitialState" style="text-align: center; padding: 3rem 2rem;">
+                                                        <div class="question-display" style="text-align: center; background: transparent; border: none; padding: 0;">
+                                                            <div class="text" style="color: var(--text-dim); margin-bottom: 2rem;">Selecciona un juego y haz clic en iniciar para comenzar.</div>
+                                                            <button id="btnStartGame" class="btn btn-primary" onclick="empezarJuego()" style="padding: 0.8rem 2rem; border-radius: 24px; font-size: 1rem;">Iniciar Juego</button>
                                                         </div>
                                                     </div>
-                                                    <div class="btn-group" style="margin-top: 1.5rem;">
-                                                        <button class="btn btn-secondary" onclick="prevQuestion()">Anterior</button>
-                                                        <button class="btn btn-secondary" onclick="nextQuestion()">Siguiente</button>
-                                                        <button id="btnStartGame" class="btn btn-primary" onclick="empezarJuego()">Iniciar juego</button>
-                                                        <button id="btnFinishGame" class="btn btn-danger" onclick="finalizarJuego()" disabled>Finalizar juego</button>
+                                                    <div id="playGameState" style="display: none;">
+                                                        <div class="question-display" id="playQuestionDisplay">
+                                                            <div class="number" id="playQuestionNumber">Pregunta 1</div>
+                                                            <div class="text" id="playQuestionText">Cargando pregunta...</div>
+                                                            <div class="options" id="playQuestionOptions" style="display:none;"></div>
+                                                        </div>
+                                                        <div class="results-bars" id="playResultsBars">
+                                                            <div class="bar-row">
+                                                                <div class="bar-label">A <span class="bar-count" id="playCountA">0</span></div>
+                                                                <div class="bar-track"><div class="bar-fill a" id="playBarA" style="width:0%"></div></div>
+                                                            </div>
+                                                            <div class="bar-row">
+                                                                <div class="bar-label">B <span class="bar-count" id="playCountB">0</span></div>
+                                                                <div class="bar-track"><div class="bar-fill b" id="playBarB" style="width:0%"></div></div>
+                                                            </div>
+                                                            <div class="bar-row">
+                                                                <div class="bar-label">C <span class="bar-count" id="playCountC">0</span></div>
+                                                                <div class="bar-track"><div class="bar-fill c" id="playBarC" style="width:0%"></div></div>
+                                                            </div>
+                                                            <div class="bar-row">
+                                                                <div class="bar-label">D <span class="bar-count" id="playCountD">0</span></div>
+                                                                <div class="bar-track"><div class="bar-fill d" id="playBarD" style="width:0%"></div></div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="btn-group" style="margin-top: 1.5rem; justify-content: space-between;">
+                                                            <div>
+                                                                <button class="btn btn-secondary" onclick="nextQuestion()">Siguiente</button>
+                                                            </div>
+                                                            <button id="btnFinishGame" class="btn btn-danger" onclick="finalizarJuego()">Finalizar Juego</button>
+                                                        </div>
                                                     </div>
                                                     <div id="playStatus" class="small-note" style="margin-top: 0.5rem">No se ha iniciado ninguna partida.</div>
-                                                    <div class="small-note" style="margin-top: 0.25rem">Recuerda seleccionar primero un juego y una pregunta en el panel de preguntas.</div>
                                                 </div>
                                             </div>
 
@@ -940,7 +961,7 @@
                                         function empezarJuego() {
                                             if (jugando) return;
                                             if (currentGame === null || !preguntas.length) return alert('Selecciona un juego con preguntas antes de iniciar.');
-                                            
+
                                             fetch('/api/juego/iniciar', {
                                                 method: 'POST',
                                                 headers: {'Content-Type': 'application/json'},
@@ -950,11 +971,16 @@
                                                     if (data.ok) {
                                                         jugando = true;
                                                         preguntaActualIdx = 0;
-                                                        
+                                                        respuestas = {};
+
+                                                        // Mostrar estado del juego
+                                                        document.getElementById('playInitialState').style.display = 'none';
+                                                        document.getElementById('playGameState').style.display = 'block';
+
                                                         // Iniciar escaneo y polling
                                                         if (polling) clearInterval(polling);
                                                         polling = setInterval(actualizarRespuestas, 500);
-                                                        
+
                                                         updatePlayButtons();
                                                         updatePlayStatus('¡Juego iniciado! Escanea las respuestas. Haz clic en "Siguiente" para avanzar.');
                                                         mostrarPreguntaActual();
@@ -971,7 +997,7 @@
                                         function finalizarJuego() {
                                             if (!jugando) return alert('No hay una partida iniciada.');
                                             if (!confirm('¿Finalizar el juego y guardar los resultados?')) return;
-                                            
+
                                             fetch('/api/juego/finalizar', {
                                                 method: 'POST',
                                                 headers: {'Content-Type': 'application/json'}
@@ -979,15 +1005,20 @@
                                                 .then(data => {
                                                     if (data.ok) {
                                                         jugando = false;
-                                                        
+
                                                         // Detener polling
                                                         if (polling) {
                                                             clearInterval(polling);
                                                             polling = null;
                                                         }
-                                                        
+
                                                         respuestas = {};
                                                         actualizarUI();
+
+                                                        // Volver al estado inicial
+                                                        document.getElementById('playInitialState').style.display = 'block';
+                                                        document.getElementById('playGameState').style.display = 'none';
+
                                                         updatePlayButtons();
                                                         updatePlayStatus(`Juego finalizado. ${data.preguntas_guardadas} preguntas guardadas.`);
                                                         alert(`¡Juego completado! Se guardaron ${data.preguntas_guardadas} preguntas con todas las respuestas.`);
@@ -1033,8 +1064,10 @@
                                         }
 
                                         function updatePlayButtons() {
-                                            document.getElementById('btnStartGame').disabled = jugando;
-                                            document.getElementById('btnFinishGame').disabled = !jugando;
+                                            const btnStart = document.getElementById('btnStartGame');
+                                            const btnFinish = document.getElementById('btnFinishGame');
+                                            if (btnStart) btnStart.disabled = jugando;
+                                            if (btnFinish) btnFinish.disabled = !jugando;
                                         }
 
                                         function updatePlayStatus(text) {
@@ -1341,7 +1374,17 @@
                 }).catch(err => console.error('Error actualizando respuestas', err));
         }
 
-        function updatePlayView() { mostrarPreguntaActual(); renderQuestions(); }
+        function updatePlayView() {
+                                            if (!jugando) {
+                                                document.getElementById('playInitialState').style.display = 'block';
+                                                document.getElementById('playGameState').style.display = 'none';
+                                            } else {
+                                                document.getElementById('playInitialState').style.display = 'none';
+                                                document.getElementById('playGameState').style.display = 'block';
+                                                mostrarPreguntaActual();
+                                                renderQuestions();
+                                            }
+                                        }
 
         function initApp() {
             cargarJuegos();
