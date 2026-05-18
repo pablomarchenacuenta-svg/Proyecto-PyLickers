@@ -129,6 +129,101 @@
       },
       "alumnos": {},
       "total_respuestas": 3
+    },
+    {
+      "partida_id": 3,
+      "timestamp": "2026-05-18T12:21:32.683380",
+      "juego": {
+        "id": 0,
+        "nombre": "test"
+      },
+      "pregunta": {
+        "pregunta_idx": 0,
+        "texto": "test2",
+        "correcta": "A",
+        "opciones": {
+          "A": "test2",
+          "B": "test2",
+          "C": "test2",
+          "D": "test2"
+        }
+      },
+      "respuestas": {
+        "26": "A"
+      },
+      "alumnos": {
+        "25": {
+          "nombre": "<u>test"
+        },
+        "26": {
+          "nombre": "53w5"
+        }
+      },
+      "total_respuestas": 1
+    },
+    {
+      "partida_id": 4,
+      "timestamp": "2026-05-18T12:21:32.683380",
+      "juego": {
+        "id": 0,
+        "nombre": "test"
+      },
+      "pregunta": {
+        "pregunta_idx": 1,
+        "texto": "test",
+        "correcta": "A",
+        "opciones": {
+          "A": "test",
+          "B": "test",
+          "C": "test",
+          "D": "test"
+        }
+      },
+      "respuestas": {
+        "26": "B",
+        "25": "D"
+      },
+      "alumnos": {
+        "25": {
+          "nombre": "<u>test"
+        },
+        "26": {
+          "nombre": "53w5"
+        }
+      },
+      "total_respuestas": 2
+    },
+    {
+      "partida_id": 5,
+      "timestamp": "2026-05-18T12:21:32.683380",
+      "juego": {
+        "id": 0,
+        "nombre": "test"
+      },
+      "pregunta": {
+        "pregunta_idx": 2,
+        "texto": "test2",
+        "correcta": "C",
+        "opciones": {
+          "A": "test2",
+          "B": "test2",
+          "C": "test2",
+          "D": "test2"
+        }
+      },
+      "respuestas": {
+        "25": "D",
+        "26": "B"
+      },
+      "alumnos": {
+        "25": {
+          "nombre": "<u>test"
+        },
+        "26": {
+          "nombre": "53w5"
+        }
+      },
+      "total_respuestas": 2
     }
   ]
 }

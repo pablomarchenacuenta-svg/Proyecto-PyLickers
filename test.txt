@@ -1,3 +1,0 @@
-Hay varios problemas en modo de juego y resultados
-Adaptalo para que se haga de la siguiente manera
-Cuando estas en el apartado de modo de juego solo hay un boton primero quye es iniciar juego en el medio despuess aparece la primera pregunta lo escaneas y al darle a siguiente primero hace un reset en detector.py y luyego ya empieza a guardar resultados hay un boton a la derecha que ponga finalizar juego que guarde todos los resultados desde que le diste a inciar
