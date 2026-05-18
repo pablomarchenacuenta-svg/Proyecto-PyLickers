@@ -529,6 +529,47 @@
                                         </div>
                                     </div>
 
+                                    <div id="modalEditarPregunta" class="modal">
+                                        <div class="modal-content">
+                                            <span class="modal-close" onclick="cerrarEditorPregunta()">×</span>
+                                            <h2>Editar pregunta</h2>
+                                            <div class="form-group">
+                                                <label>Texto de la pregunta</label>
+                                                <textarea id="editPreguntaTexto" placeholder="Escribe la pregunta..."></textarea>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Opción A</label>
+                                                <input type="text" id="editPreguntaOptA" placeholder="Opción A">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Opción B</label>
+                                                <input type="text" id="editPreguntaOptB" placeholder="Opción B">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Opción C</label>
+                                                <input type="text" id="editPreguntaOptC" placeholder="Opción C">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Opción D</label>
+                                                <input type="text" id="editPreguntaOptD" placeholder="Opción D">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Respuesta correcta</label>
+                                                <select id="editPreguntaCorrecta">
+                                                    <option value="A">A</option>
+                                                    <option value="B">B</option>
+                                                    <option value="C">C</option>
+                                                    <option value="D">D</option>
+                                                </select>
+                                            </div>
+                                            <div class="btn-group" style="justify-content: flex-end;">
+                                                <button class="btn btn-secondary" onclick="cerrarEditorPregunta()">Cancelar</button>
+                                                <button class="btn btn-danger" onclick="eliminarPreguntaEditando()" style="margin-right: auto;">Eliminar</button>
+                                                <button class="btn btn-primary" onclick="guardarPreguntaEditada()">Guardar</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <script>
                                         let juegos = [];
                                         let preguntas = [];
@@ -704,6 +745,7 @@
                                                     <div class="btn-group" style="margin-top: 0.75rem;">
                                                         <button class="btn btn-secondary" type="button" onclick="event.stopPropagation(); moverPregunta(${index}, -1)">Subir</button>
                                                         <button class="btn btn-secondary" type="button" onclick="event.stopPropagation(); moverPregunta(${index}, 1)">Bajar</button>
+                                                        <button class="btn btn-secondary" type="button" onclick="event.stopPropagation(); abrirEditorPregunta(${index})">Editar</button>
                                                     </div>
                                                 `;
                                                 item.onclick = () => {
@@ -811,23 +853,183 @@
                                                 });
                                         }
 
+                                        let preguntaEditandoIdx = null;
+
+                                        function abrirEditorPregunta(index) {
+                                            if (index < 0 || index >= preguntas.length) return;
+                                            preguntaEditandoIdx = index;
+                                            const pregunta = preguntas[index];
+                                            
+                                            document.getElementById('editPreguntaTexto').value = pregunta.texto || '';
+                                            document.getElementById('editPreguntaOptA').value = pregunta.opciones?.A || '';
+                                            document.getElementById('editPreguntaOptB').value = pregunta.opciones?.B || '';
+                                            document.getElementById('editPreguntaOptC').value = pregunta.opciones?.C || '';
+                                            document.getElementById('editPreguntaOptD').value = pregunta.opciones?.D || '';
+                                            document.getElementById('editPreguntaCorrecta').value = pregunta.correcta || 'A';
+                                            
+                                            document.getElementById('modalEditarPregunta').classList.add('visible');
+                                        }
+
+                                        function cerrarEditorPregunta() {
+                                            document.getElementById('modalEditarPregunta').classList.remove('visible');
+                                            preguntaEditandoIdx = null;
+                                        }
+
+                                        function guardarPreguntaEditada() {
+                                            if (preguntaEditandoIdx === null) return cerrarEditorPregunta();
+                                            
+                                            const preguntaActualizada = {
+                                                texto: document.getElementById('editPreguntaTexto').value.trim(),
+                                                opciones: {
+                                                    A: document.getElementById('editPreguntaOptA').value.trim(),
+                                                    B: document.getElementById('editPreguntaOptB').value.trim(),
+                                                    C: document.getElementById('editPreguntaOptC').value.trim(),
+                                                    D: document.getElementById('editPreguntaOptD').value.trim(),
+                                                },
+                                                correcta: document.getElementById('editPreguntaCorrecta').value
+                                            };
+
+                                            if (!preguntaActualizada.texto) return alert('La pregunta no puede estar vacía');
+
+                                            fetch(`/api/juegos/${currentGame}/preguntas/${preguntaEditandoIdx}`, {
+                                                method: 'PUT',
+                                                headers: {'Content-Type': 'application/json'},
+                                                body: JSON.stringify(preguntaActualizada)
+                                            }).then(r => r.json())
+                                                .then(data => {
+                                                    if (data.ok) {
+                                                        preguntas[preguntaEditandoIdx] = preguntaActualizada;
+                                                        renderQuestions();
+                                                        mostrarPreguntaActual();
+                                                        cerrarEditorPregunta();
+                                                    } else {
+                                                        alert('Error guardando pregunta: ' + (data.error || ''));
+                                                    }
+                                                }).catch(err => {
+                                                    console.error('Error:', err);
+                                                    alert('Error al guardar pregunta: ' + err.message);
+                                                });
+                                        }
+
+                                        function eliminarPreguntaEditando() {
+                                            if (preguntaEditandoIdx === null) return;
+                                            if (!confirm('¿Estás seguro de que quieres eliminar esta pregunta?')) return;
+
+                                            fetch(`/api/juegos/${currentGame}/preguntas/${preguntaEditandoIdx}`, {
+                                                method: 'DELETE',
+                                                headers: {'Content-Type': 'application/json'}
+                                            }).then(r => r.json())
+                                                .then(data => {
+                                                    if (data.ok) {
+                                                        preguntas.splice(preguntaEditandoIdx, 1);
+                                                        if (preguntaActualIdx >= preguntas.length && preguntaActualIdx > 0) {
+                                                            preguntaActualIdx -= 1;
+                                                        }
+                                                        renderQuestions();
+                                                        mostrarPreguntaActual();
+                                                        cerrarEditorPregunta();
+                                                    } else {
+                                                        alert('Error eliminando pregunta: ' + (data.error || ''));
+                                                    }
+                                                }).catch(err => {
+                                                    console.error('Error:', err);
+                                                    alert('Error al eliminar pregunta: ' + err.message);
+                                                });
+                                        }
+
                                         function empezarJuego() {
                                             if (jugando) return;
-                                            if (currentGame === null || !preguntas.length) return alert('Selecciona un juego y una pregunta antes de iniciar.');
-                                            resetRespuestas();
-                                            iniciarEscaneo();
-                                            jugando = true;
-                                            updatePlayButtons();
-                                            updatePlayStatus('Escaneo iniciado. Respuestas en vivo.');
+                                            if (currentGame === null || !preguntas.length) return alert('Selecciona un juego con preguntas antes de iniciar.');
+                                            
+                                            fetch('/api/juego/iniciar', {
+                                                method: 'POST',
+                                                headers: {'Content-Type': 'application/json'},
+                                                body: JSON.stringify({ juego_idx: currentGame })
+                                            }).then(r => r.json())
+                                                .then(data => {
+                                                    if (data.ok) {
+                                                        jugando = true;
+                                                        preguntaActualIdx = 0;
+                                                        
+                                                        // Iniciar escaneo y polling
+                                                        if (polling) clearInterval(polling);
+                                                        polling = setInterval(actualizarRespuestas, 500);
+                                                        
+                                                        updatePlayButtons();
+                                                        updatePlayStatus('¡Juego iniciado! Escanea las respuestas. Haz clic en "Siguiente" para avanzar.');
+                                                        mostrarPreguntaActual();
+                                                        renderQuestions();
+                                                    } else {
+                                                        alert('Error: ' + (data.error || 'No se pudo iniciar el juego'));
+                                                    }
+                                                }).catch(err => {
+                                                    console.error('Error:', err);
+                                                    alert('Error al iniciar juego: ' + err.message);
+                                                });
                                         }
 
                                         function finalizarJuego() {
                                             if (!jugando) return alert('No hay una partida iniciada.');
-                                            guardarSesion();
-                                            pararEscaneo();
-                                            jugando = false;
-                                            updatePlayButtons();
-                                            updatePlayStatus('Partida finalizada. Resultados guardados.');
+                                            if (!confirm('¿Finalizar el juego y guardar los resultados?')) return;
+                                            
+                                            fetch('/api/juego/finalizar', {
+                                                method: 'POST',
+                                                headers: {'Content-Type': 'application/json'}
+                                            }).then(r => r.json())
+                                                .then(data => {
+                                                    if (data.ok) {
+                                                        jugando = false;
+                                                        
+                                                        // Detener polling
+                                                        if (polling) {
+                                                            clearInterval(polling);
+                                                            polling = null;
+                                                        }
+                                                        
+                                                        respuestas = {};
+                                                        actualizarUI();
+                                                        updatePlayButtons();
+                                                        updatePlayStatus(`Juego finalizado. ${data.preguntas_guardadas} preguntas guardadas.`);
+                                                        alert(`¡Juego completado! Se guardaron ${data.preguntas_guardadas} preguntas con todas las respuestas.`);
+                                                        cargarResultados();
+                                                    } else {
+                                                        alert('Error: ' + (data.error || 'No se pudo finalizar el juego'));
+                                                    }
+                                                }).catch(err => {
+                                                    console.error('Error:', err);
+                                                    alert('Error al finalizar juego: ' + err.message);
+                                                });
+                                        }
+
+                                        function avanzarPregunta() {
+                                            if (!jugando) return;
+                                            
+                                            fetch('/api/juego/pregunta-siguiente', {
+                                                method: 'POST',
+                                                headers: {'Content-Type': 'application/json'}
+                                            }).then(r => r.json())
+                                                .then(data => {
+                                                    if (data.ok) {
+                                                        // Reset de respuestas en la UI
+                                                        respuestas = {};
+                                                        actualizarUI();
+                                                        
+                                                        if (data.finalizado) {
+                                                            alert('Has llegado a la última pregunta. Haz clic en "Finalizar juego" para guardar todos los resultados.');
+                                                            updatePlayStatus('Última pregunta. Haz clic en "Finalizar juego" cuando termines.');
+                                                        } else {
+                                                            preguntaActualIdx = data.pregunta_actual;
+                                                            updatePlayStatus(`Pregunta ${data.pregunta_actual + 1}/${data.total_preguntas}. Escanea las respuestas...`);
+                                                            mostrarPreguntaActual();
+                                                            renderQuestions();
+                                                        }
+                                                    } else {
+                                                        alert('Error: ' + (data.error || 'No se pudo avanzar'));
+                                                    }
+                                                }).catch(err => {
+                                                    console.error('Error:', err);
+                                                    alert('Error al avanzar pregunta: ' + err.message);
+                                                });
                                         }
 
                                         function updatePlayButtons() {
@@ -904,10 +1106,10 @@
                                             const respuestas = sesion.respuestas || {};
                                             const pregunta = sesion.pregunta || {};
                                             const lista = Object.keys(respuestas).sort((a, b) => Number(a) - Number(b)).map(id => {
-                                                const nombre = sesion.alumnos?.[id]?.nombre || `Alumno ${Number(id) + 1}`;
+                                                const nombre = sesion.alumnos?.[id]?.nombre || `Alumno ${Number(id)}`;
                                                 const resp = respuestas[id] || '';
                                                 const score = resp ? (resp === pregunta.correcta ? 1 : -1) : 0;
-                                                return `<tr><td>#${Number(id) + 1}</td><td>${nombre}</td><td>${resp}</td><td>${score}</td></tr>`;
+                                                return `<tr><td>#${Number(id)}</td><td>${nombre}</td><td>${resp}</td><td>${score}</td></tr>`;
                                             }).join('');
                                             const content = `
                                                 <h2>Detalle de la partida</h2>
@@ -974,14 +1176,23 @@
 
                                         function prevQuestion() {
                                             if (!preguntas.length) return;
+                                            if (jugando) {
+                                                alert('No puedes retroceder durante un juego. Usa "Siguiente" para avanzar.');
+                                                return;
+                                            }
                                             preguntaActualIdx = Math.max(0, preguntaActualIdx - 1);
                                             mostrarPreguntaActual();
                                             renderQuestions();
                                         }
 
-                                        // --- SOLUCIÓN AL CÓDIGO CORTADO ---
                                         function nextQuestion() {
                                             if (!preguntas.length) return;
+                                            if (jugando) {
+                                                // Durante el juego, usar la función de avance
+                                                avanzarPregunta();
+                                                return;
+                                            }
+                                            // Modo normal: solo navegar
                                             preguntaActualIdx = Math.min(preguntas.length - 1, preguntaActualIdx + 1);
                                             mostrarPreguntaActual();
                                             renderQuestions();
@@ -1006,7 +1217,7 @@
                 const nombre = alumnosNombres[String(i)]?.nombre || '';
                 cell.className = 'student-cell';
                 cell.id = `student-${i}`;
-                cell.innerHTML = `<div class="id">#${i + 1}</div><div class="name">${nombre}</div>`;
+                cell.innerHTML = `<div class="id">#${i}</div><div class="name">${nombre}</div>`;
                 cell.onclick = () => abrirEditorNombre(i);
                 grid.appendChild(cell);
             }
@@ -1015,7 +1226,7 @@
 
         function abrirEditorNombre(id) {
             editorAlumnoId = id;
-            document.getElementById('editorNum').textContent = id + 1;
+            document.getElementById('editorNum').textContent = id;
             document.getElementById('inputNombre').value = alumnosNombres[String(id)]?.nombre || '';
             document.getElementById('modalEditor').classList.add('visible');
         }
@@ -1040,7 +1251,7 @@
 
         function asignarNumeros() {
             for (let i = 0; i < numAlumnos; i++) {
-                const nombre = `Alumno ${i + 1}`;
+                const nombre = `Alumno ${i}`;
                 fetch('/api/alumnos/asignar-nombre', {
                     method: 'POST', headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ id: i, nombre })
@@ -1063,7 +1274,7 @@
                 if (!cell) continue;
                 const nombre = alumnosNombres[String(i)]?.nombre || '';
                 cell.className = 'student-cell';
-                cell.innerHTML = `<div class="id">#${i + 1}</div><div class="name">${nombre}</div>`;
+                cell.innerHTML = `<div class="id">#${i}</div><div class="name">${nombre}</div>`;
             }
             for (const [id, resp] of Object.entries(respuestas)) {
                 const idx = Number(id);
@@ -1071,7 +1282,7 @@
                 if (cell) {
                     cell.className = `student-cell answered ${resp.toLowerCase()}`;
                     const nombre = alumnosNombres[String(idx)]?.nombre || '';
-                    cell.innerHTML = `<div class="id">#${idx + 1}</div><div class="name">${nombre}</div>`;
+                    cell.innerHTML = `<div class="id">#${idx}</div><div class="name">${nombre}</div>`;
                     conteo[resp] = (conteo[resp] || 0) + 1;
                 }
             }

@@ -95,6 +95,13 @@ sesion_activa = {
     "pregunta_actual": None,
     "respuestas": {},
     "activa": False,
+    "juego_en_progreso": None,  # Información del juego actual
+    "respuestas_por_pregunta": {},  # {pregunta_idx: {alumno_id: respuesta}}
+    "juego_iniciado": False,  # Indica si está en modo juego
+    "reset_counter": 0,  # Incrementar para indicar al detector que debe resetear
+    "reset_scheduled": False,  # Cuando True, indica que un reset fue solicitado (por detector)
+    "pausing": False,  # Cuando True, bufferizar incoming respuestas temporalmente
+    "incoming_buffer": [],  # Lista de dicts con respuestas recibidas durante la pausa
 }
 
 # Proceso del detector (si se lanza desde la web)
@@ -191,6 +198,39 @@ def api_crear_pregunta_en_juego(idx):
         guardar_datos(datos)
         print(f"Pregunta creada en juego {idx}: {pregunta.get('texto', '')}")
         return jsonify({"ok": True})
+    return jsonify({"error": "Juego no encontrado"}), 404
+
+
+@app.route("/api/juegos/<int:idx>/preguntas/<int:pregunta_idx>", methods=["PUT"])
+def api_editar_pregunta_en_juego(idx, pregunta_idx):
+    """Edita una pregunta existente en un juego."""
+    datos = cargar_datos()
+    juegos = datos["juegos"]
+    if 0 <= idx < len(juegos):
+        preguntas = juegos[idx].get("preguntas", [])
+        if 0 <= pregunta_idx < len(preguntas):
+            pregunta_actualizada = request.json or {}
+            preguntas[pregunta_idx] = pregunta_actualizada
+            guardar_datos(datos)
+            print(f"Pregunta editada en juego {idx}, índice {pregunta_idx}")
+            return jsonify({"ok": True})
+        return jsonify({"error": "Pregunta no encontrada"}), 404
+    return jsonify({"error": "Juego no encontrado"}), 404
+
+
+@app.route("/api/juegos/<int:idx>/preguntas/<int:pregunta_idx>", methods=["DELETE"])
+def api_eliminar_pregunta_en_juego(idx, pregunta_idx):
+    """Elimina una pregunta de un juego."""
+    datos = cargar_datos()
+    juegos = datos["juegos"]
+    if 0 <= idx < len(juegos):
+        preguntas = juegos[idx].get("preguntas", [])
+        if 0 <= pregunta_idx < len(preguntas):
+            preguntas.pop(pregunta_idx)
+            guardar_datos(datos)
+            print(f"Pregunta eliminada en juego {idx}, índice {pregunta_idx}")
+            return jsonify({"ok": True})
+        return jsonify({"error": "Pregunta no encontrada"}), 404
     return jsonify({"error": "Juego no encontrado"}), 404
 
 
@@ -467,7 +507,7 @@ def api_resultados_export():
     header = ['Alumno'] + [f'P{q+1}' for q in range(n_q)]
     writer.writerow(header)
     for i in range(n_s):
-        row = [alumnos_global.get(str(i), {}).get('nombre', f'Alumno {i}')]
+        row = [alumnos_global.get(str(i), {}).get('nombre', f'Alumno {i+1}')]
         for q in range(n_q):
             val = mat[i, q]
             if val == 4:
@@ -555,7 +595,7 @@ def api_exportar_sesion(session_idx):
     writer = csv.writer(csv_buffer)
     writer.writerow(["Alumno", "Respuesta", "Correcta", "Puntuación"])
     for i in range(NUM_ALUMNOS):
-        alumno = alumnos.get(str(i), {}).get("nombre", f"Alumno {i + 1}")
+        alumno = alumnos.get(str(i), {}).get("nombre", f"Alumno {i}")
         respuesta = respuestas.get(str(i), "")
         puntaje = 0
         if respuesta:
@@ -570,10 +610,226 @@ def api_exportar_sesion(session_idx):
 
 @app.route("/api/sesion/respuestas", methods=["POST"])
 def api_recibir_respuestas():
-    if sesion_activa["activa"]:
-        nuevas = request.json.get("respuestas", {})
-        sesion_activa["respuestas"].update(nuevas)
+    if not sesion_activa["activa"]:
+        return jsonify({"ok": True})
+
+    nuevas = request.json.get("respuestas", {})
+    # Si estamos en pausa, bufferizar las respuestas entrantes
+    if sesion_activa.get("pausing"):
+        sesion_activa.setdefault("incoming_buffer", []).append(nuevas)
+        return jsonify({"ok": True, "buffered": True})
+
+    # Normal: actualizar el estado de respuestas
+    sesion_activa["respuestas"].update(nuevas)
     return jsonify({"ok": True})
+
+
+@app.route('/api/sesion/schedule_reset', methods=['POST'])
+def api_schedule_reset():
+    """Endpoint para que el detector indique que solicita un reset (programado).
+    El servidor no borra inmediatamente; el reset ocurre cuando el profesor avanza la pregunta."""
+    sesion_activa["reset_scheduled"] = True
+    return jsonify({"ok": True})
+
+
+# ── API para juego progresivo (pregunta a pregunta) ────────────────
+@app.route("/api/juego/iniciar", methods=["POST"])
+def api_iniciar_juego():
+    """Inicia un juego completo con todas sus preguntas."""
+    datos = cargar_datos()
+    data = request.json or {}
+    juego_idx = data.get("juego_idx")
+    
+    if not isinstance(juego_idx, int) or juego_idx < 0 or juego_idx >= len(datos.get("juegos", [])):
+        return jsonify({"error": "Juego inválido"}), 400
+    
+    juego = datos["juegos"][juego_idx]
+    if not juego.get("preguntas"):
+        return jsonify({"error": "El juego no tiene preguntas"}), 400
+    
+    # Inicializar el juego en progreso
+    sesion_activa["juego_en_progreso"] = {
+        "juego_idx": juego_idx,
+        "juego_nombre": juego.get("nombre", "Juego"),
+        "pregunta_actual": 0,
+        "total_preguntas": len(juego.get("preguntas", [])),
+    }
+    sesion_activa["respuestas_por_pregunta"] = {}
+    sesion_activa["respuestas"] = {}
+    # Ensure any previous buffers are cleared
+    sesion_activa["incoming_buffer"] = []
+    sesion_activa["pausing"] = False
+    # Signal detector to reset its local state
+    sesion_activa["reset_counter"] = sesion_activa.get("reset_counter", 0) + 1
+    sesion_activa["reset_scheduled"] = False
+    sesion_activa["juego_iniciado"] = True
+    sesion_activa["activa"] = True
+    
+    # Iniciar escaneo
+    try:
+        global detector_proc
+        if detector_proc is not None and detector_proc.poll() is None:
+            pass
+        
+        kwargs = {}
+        if os.name == 'nt':
+            kwargs['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
+        
+        detector_proc = subprocess.Popen([sys.executable, "detector.py", "--alumnos", str(NUM_ALUMNOS)], **kwargs)
+    except Exception as e:
+        print(f"Error al lanzar detector: {e}")
+        return jsonify({"error": str(e)}), 500
+    
+    return jsonify({
+        "ok": True,
+        "juego_en_progreso": sesion_activa["juego_en_progreso"],
+        "pregunta": juego["preguntas"][0]
+    })
+
+
+@app.route("/api/juego/pregunta-siguiente", methods=["POST"])
+def api_pregunta_siguiente():
+    """Avanza a la siguiente pregunta y guarda las respuestas de la actual."""
+    if not sesion_activa.get("juego_en_progreso"):
+        return jsonify({"error": "No hay un juego en progreso"}), 400
+    
+    datos = cargar_datos()
+    juego_en_progreso = sesion_activa["juego_en_progreso"]
+    pregunta_actual = juego_en_progreso["pregunta_actual"]
+    
+    # Activar pausa para bufferizar entradas mientras hacemos snapshot
+    sesion_activa["pausing"] = True
+
+    # Guardar respuestas de la pregunta actual (snapshot)
+    respuestas_actuales = dict(sesion_activa.get("respuestas", {}))
+    if respuestas_actuales:
+        sesion_activa.setdefault("respuestas_por_pregunta", {})[pregunta_actual] = respuestas_actuales
+
+    # Reset de respuestas para la siguiente pregunta
+    sesion_activa["respuestas"] = {}
+    # Incrementar contador de reset para que el detector borre su acumulado
+    sesion_activa["reset_counter"] = sesion_activa.get("reset_counter", 0) + 1
+    sesion_activa["reset_scheduled"] = False
+
+    # Desactivar pausa y aplicar cualquier buffer recibido durante la operación
+    buffered = sesion_activa.get("incoming_buffer", []) or []
+    # Merge buffered dicts into respuestas (correspond to next question)
+    merged = {}
+    for b in buffered:
+        if isinstance(b, dict):
+            merged.update(b)
+    sesion_activa["incoming_buffer"] = []
+    sesion_activa["pausing"] = False
+    # Apply merged buffered responses to the active respuestas store
+    if merged:
+        sesion_activa.setdefault("respuestas", {}).update(merged)
+    
+    # Avanzar a la siguiente pregunta
+    pregunta_actual += 1
+    juego_en_progreso["pregunta_actual"] = pregunta_actual
+    
+    # Si llegamos al final, devolver estado de finalización
+    if pregunta_actual >= juego_en_progreso["total_preguntas"]:
+        return jsonify({
+            "ok": True,
+            "finalizado": True,
+            "mensaje": "Todas las preguntas han sido respondidas"
+        })
+    
+    # Devolver siguiente pregunta
+    juego_idx = juego_en_progreso["juego_idx"]
+    juego = datos["juegos"][juego_idx]
+    siguiente_pregunta = juego["preguntas"][pregunta_actual]
+    
+    return jsonify({
+        "ok": True,
+        "finalizado": False,
+        "pregunta_actual": pregunta_actual,
+        "total_preguntas": juego_en_progreso["total_preguntas"],
+        "pregunta": siguiente_pregunta
+    })
+
+
+@app.route("/api/juego/finalizar", methods=["POST"])
+def api_finalizar_juego():
+    """Finaliza el juego y guarda todas las respuestas."""
+    if not sesion_activa.get("juego_en_progreso"):
+        return jsonify({"error": "No hay un juego en progreso"}), 400
+    
+    datos = cargar_datos()
+    juego_en_progreso = sesion_activa["juego_en_progreso"]
+    pregunta_actual = juego_en_progreso["pregunta_actual"]
+    
+    # Guardar las respuestas de la última pregunta
+    respuestas_actuales = sesion_activa.get("respuestas", {})
+    if respuestas_actuales:
+        sesion_activa["respuestas_por_pregunta"][pregunta_actual] = dict(respuestas_actuales)
+    
+    # Crear registro completo del juego
+    juego_idx = juego_en_progreso["juego_idx"]
+    juego = datos["juegos"][juego_idx]
+    preguntas = juego.get("preguntas", [])
+    alumnos = datos.get("alumnos", {})
+    
+    # Crear un registro por cada pregunta del juego
+    for q_idx, pregunta in enumerate(preguntas):
+        respuestas_pregunta = sesion_activa["respuestas_por_pregunta"].get(q_idx, {})
+        
+        registro = {
+            "partida_id": len(datos.get("partidas", [])),
+            "timestamp": datetime.now().isoformat(),
+            "juego": {
+                "id": juego_idx,
+                "nombre": juego.get("nombre", "Juego"),
+            },
+            "pregunta": {
+                "pregunta_idx": q_idx,
+                "texto": pregunta.get("texto", ""),
+                "correcta": pregunta.get("correcta", ""),
+                "opciones": pregunta.get("opciones", {}),
+            },
+            "respuestas": respuestas_pregunta,
+            "alumnos": alumnos,
+            "total_respuestas": len(respuestas_pregunta),
+        }
+        datos.setdefault("partidas", []).append(registro)
+    
+    datos.setdefault("sesiones", datos["partidas"])
+    guardar_datos(datos)
+    
+    # Limpiar estado del juego
+    sesion_activa["juego_en_progreso"] = None
+    sesion_activa["respuestas_por_pregunta"] = {}
+    sesion_activa["respuestas"] = {}
+    sesion_activa["reset_counter"] = sesion_activa.get("reset_counter", 0) + 1
+    sesion_activa["reset_scheduled"] = False
+    sesion_activa["juego_iniciado"] = False
+    sesion_activa["activa"] = False
+    
+    # Parar escaneo
+    try:
+        global detector_proc
+        if detector_proc is None or detector_proc.poll() is not None:
+            detector_proc = None
+        else:
+            if os.name == 'nt':
+                try:
+                    os.kill(detector_proc.pid, signal.CTRL_BREAK_EVENT)
+                except Exception:
+                    pass
+            else:
+                detector_proc.terminate()
+            detector_proc.wait(timeout=3)
+    except Exception:
+        try:
+            if detector_proc:
+                detector_proc.kill()
+        except Exception:
+            pass
+    detector_proc = None
+    
+    print(f"Juego '{juego.get('nombre')}' finalizado. {len(preguntas)} preguntas guardadas.")
+    return jsonify({"ok": True, "preguntas_guardadas": len(preguntas)})
 
 
 @app.route("/api/partidas")

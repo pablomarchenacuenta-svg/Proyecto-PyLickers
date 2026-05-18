@@ -1,31 +1,28 @@
 {
   "preguntas": [],
   "sesiones": [],
-  "alumnos": {},
+  "alumnos": {
+    "25": {
+      "nombre": "<u>test"
+    },
+    "26": {
+      "nombre": "53w5"
+    }
+  },
   "juegos": [
     {
-      "nombre": "General",
+      "nombre": "test",
       "descripcion": "Juego general",
       "preguntas": [
         {
-          "correcta": "C",
+          "texto": "test2",
           "opciones": {
             "A": "test2",
             "B": "test2",
             "C": "test2",
             "D": "test2"
           },
-          "texto": "test2"
-        },
-        {
-          "correcta": "C",
-          "opciones": {
-            "A": "test2",
-            "B": "test2",
-            "C": "test2",
-            "D": "test2"
-          },
-          "texto": "test2"
+          "correcta": "A"
         },
         {
           "correcta": "A",
@@ -36,6 +33,16 @@
             "D": "test"
           },
           "texto": "test"
+        },
+        {
+          "correcta": "C",
+          "opciones": {
+            "A": "test2",
+            "B": "test2",
+            "C": "test2",
+            "D": "test2"
+          },
+          "texto": "test2"
         }
       ]
     }
@@ -95,6 +102,33 @@
       },
       "alumnos": {},
       "total_respuestas": 4
+    },
+    {
+      "partida_id": 2,
+      "timestamp": "2026-05-18T11:47:00.221891",
+      "juego": {
+        "id": 0,
+        "nombre": "General",
+        "descripcion": "Juego general"
+      },
+      "pregunta": {
+        "pregunta_idx": 0,
+        "texto": "test",
+        "correcta": "A",
+        "opciones": {
+          "A": "test",
+          "B": "test",
+          "C": "test",
+          "D": "test"
+        }
+      },
+      "respuestas": {
+        "17": "B",
+        "25": "A",
+        "26": "D"
+      },
+      "alumnos": {},
+      "total_respuestas": 3
     }
   ]
 }

@@ -225,7 +225,8 @@ def dibujar_panel_estado(frame, respuestas_acumuladas, respuestas_actuales):
         else:
             cv2.rectangle(panel, (x, y), (x + cell_size, y + cell_size),
                           (80, 80, 80), -1)
-            cv2.putText(panel, f"{alumno_id}", (x + 3, y + 22),
+            # Mostrar número de alumno en base 1
+            cv2.putText(panel, f"{alumno_id + 1}", (x + 3, y + 22),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.35, (120, 120, 120), 1)
 
     # ── Barra de resumen ──
@@ -282,7 +283,7 @@ def main():
                         help="Índice de la cámara (por defecto: 0)")
     parser.add_argument("--debug", action="store_true",
                         help="Activar modo debug")
-    parser.add_argument("--alumnos", type=int, default=30,
+    parser.add_argument("--alumnos", type=int, default=4,
                         help="Número de alumnos")
     args = parser.parse_args()
 
@@ -308,6 +309,14 @@ def main():
     respuestas_acumuladas = {}  # Guarda la última respuesta de cada alumno
     modo_debug = args.debug
     last_send = 0
+    # For coordinated resets with the web app
+    server_reset_counter = 0
+    try:
+        r = requests.get("http://localhost:5000/api/sesion/estado", timeout=0.5)
+        if r.ok:
+            server_reset_counter = int(r.json().get("reset_counter", 0))
+    except Exception:
+        server_reset_counter = 0
 
     while True:
         ret, frame = cap.read()
@@ -326,6 +335,19 @@ def main():
         if current_time - last_send > 1:
             try:
                 requests.post("http://localhost:5000/api/sesion/respuestas", json={"respuestas": respuestas_acumuladas}, timeout=0.5)
+                # Check server state for reset counter
+                try:
+                    r = requests.get("http://localhost:5000/api/sesion/estado", timeout=0.5)
+                    if r.ok:
+                        data = r.json()
+                        srv = int(data.get("reset_counter", 0))
+                        if srv > server_reset_counter:
+                            # Server requested a reset -> clear local accumulated responses
+                            respuestas_acumuladas = {}
+                            server_reset_counter = srv
+                            print("Detector: reset aplicado por servidor (reset_counter={})".format(server_reset_counter))
+                except Exception:
+                    pass
                 last_send = current_time
             except:
                 pass
@@ -363,9 +385,12 @@ def main():
             with open(filename, "w") as f:
                 json.dump(datos, f, indent=2, ensure_ascii=False)
             print(f"Respuestas guardadas en {filename}")
-        elif key == ord("r"):  # Reset
-            respuestas_acumuladas = {}
-            print("Respuestas reseteadas.")
+        elif key == ord("r"):  # Schedule Reset (do not clear locally)
+            try:
+                requests.post("http://localhost:5000/api/sesion/schedule_reset", timeout=0.5)
+                print("Detector: reset programado en servidor; se aplicará al avanzar la pregunta.")
+            except Exception:
+                print("Detector: no se pudo programar reset en servidor.")
         elif key == ord("d"):  # Debug toggle
             modo_debug = not modo_debug
             print(f"Debug: {'ON' if modo_debug else 'OFF'}")
