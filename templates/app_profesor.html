@@ -1003,34 +1003,51 @@
                                                 headers: {'Content-Type': 'application/json'}
                                             }).then(r => r.json())
                                                 .then(data => {
-                                                    if (data.ok) {
-                                                        jugando = false;
+                                                                                    if (data.ok) {
+                                                                                        jugando = false;
+                                                                                        if (polling) {
+                                                                                            clearInterval(polling);
+                                                                                            polling = null;
+                                                                                        }
+                                                                                        respuestas = {};
+                                                                                        actualizarUI();
+                                                                                        document.getElementById('playInitialState').style.display = 'block';
+                                                                                        document.getElementById('playGameState').style.display = 'none';
+                                                                                        updatePlayButtons();
+                                                                                        updatePlayStatus(`Juego finalizado. ${data.preguntas_guardadas} preguntas guardadas.`);
+                                                                                        // Mostrar popup ganador tipo Kahoot
+                                                                                        mostrarPopupGanador(data.ganador, data.puntuaciones);
+                                                                                        cargarResultados();
+                                                                                    } else {
+                                                                                        alert('Error: ' + (data.error || 'No se pudo finalizar el juego'));
+                                                                                    }
+                                                                                }).catch(err => {
+                                                                                    console.error('Error:', err);
+                                                                                    alert('Error al finalizar juego: ' + err.message);
+                                                                                });
+                                                }
 
-                                                        // Detener polling
-                                                        if (polling) {
-                                                            clearInterval(polling);
-                                                            polling = null;
-                                                        }
-
-                                                        respuestas = {};
-                                                        actualizarUI();
-
-                                                        // Volver al estado inicial
-                                                        document.getElementById('playInitialState').style.display = 'block';
-                                                        document.getElementById('playGameState').style.display = 'none';
-
-                                                        updatePlayButtons();
-                                                        updatePlayStatus(`Juego finalizado. ${data.preguntas_guardadas} preguntas guardadas.`);
-                                                        alert(`¡Juego completado! Se guardaron ${data.preguntas_guardadas} preguntas con todas las respuestas.`);
-                                                        cargarResultados();
-                                                    } else {
-                                                        alert('Error: ' + (data.error || 'No se pudo finalizar el juego'));
+                                                // Popup ganador tipo Kahoot (fuera de la función finalizarJuego)
+                                                function mostrarPopupGanador(ganador, puntuaciones) {
+                                                    let html = `<h2>¡Ganador${ganador && ganador.includes(',') ? 'es' : ''}!</h2>`;
+                                                    html += `<div style="font-size:2rem;font-weight:700;color:#34A853;margin:1rem 0;">${ganador}</div>`;
+                                                    if (puntuaciones) {
+                                                        html += '<h3>Puntuaciones finales</h3>';
+                                                        html += '<table style="width:100%;margin-top:1rem;text-align:left;">';
+                                                        html += '<tr><th>Alumno</th><th>Puntos</th></tr>';
+                                                        Object.entries(puntuaciones).sort((a,b)=>b[1]-a[1]).forEach(([id, puntos]) => {
+                                                            const nombre = alumnosNombres[id]?.nombre || `Alumno ${id}`;
+                                                            html += `<tr><td>${nombre}</td><td>${puntos}</td></tr>`;
+                                                        });
+                                                        html += '</table>';
                                                     }
-                                                }).catch(err => {
-                                                    console.error('Error:', err);
-                                                    alert('Error al finalizar juego: ' + err.message);
-                                                });
-                                        }
+                                                    document.getElementById('modalResultsContent').innerHTML = html;
+                                                    document.getElementById('modalResults').classList.add('visible');
+                                                }
+
+                                                function cerrarModalResultados() {
+                                                    document.getElementById('modalResults').classList.remove('visible');
+                                                }
 
                                         function avanzarPregunta() {
                                             if (!jugando) return;
@@ -1080,46 +1097,46 @@
                                                 .then(r => r.json())
                                                 .then(data => {
                                                     sesiones = data || [];
-                                                    const grouped = {};
+                                                    // Agrupa por juego y muestra cada partida
+                                                    const juegosAgrupados = {};
                                                     sesiones.forEach((sesion, index) => {
                                                         const juegoId = sesion.juego?.id ?? 0;
-                                                        grouped[juegoId] = grouped[juegoId] || { juego: sesion.juego, sesiones: [] };
-                                                        grouped[juegoId].sesiones.push({ ...sesion, idx: index });
+                                                        if (!juegosAgrupados[juegoId]) {
+                                                            juegosAgrupados[juegoId] = { juego: sesion.juego, partidas: [] };
+                                                        }
+                                                        juegosAgrupados[juegoId].partidas.push({ ...sesion, idx: index });
                                                     });
                                                     const container = document.getElementById('resultsList');
                                                     container.innerHTML = '';
-                                                    if (!Object.keys(grouped).length) {
+                                                    if (!Object.keys(juegosAgrupados).length) {
                                                         container.innerHTML = '<div class="small-note">No hay partidas guardadas aún.</div>';
                                                         return;
                                                     }
-                                                    for (const key of Object.keys(grouped)) {
-                                                        const group = grouped[key];
+                                                    for (const key of Object.keys(juegosAgrupados)) {
+                                                        const group = juegosAgrupados[key];
                                                         const gameCard = document.createElement('div');
                                                         gameCard.className = 'card';
                                                         gameCard.style.marginBottom = '1rem';
                                                         gameCard.innerHTML = `
                                                             <div class="section-card-header">
                                                                 <h2>${group.juego?.nombre || 'Juego'}</h2>
-                                                                <p class="small-note">${group.sesiones.length} partidas guardadas</p>
+                                                                <p class="small-note">${group.partidas.length} partidas jugadas</p>
                                                             </div>
                                                         `;
                                                         const list = document.createElement('div');
                                                         list.className = 'question-list';
-                                                        group.sesiones.forEach(s => {
+                                                        // Mostrar cada partida del juego
+                                                        group.partidas.slice().reverse().forEach(partida => {
+                                                            const fecha = new Date(partida.timestamp).toLocaleString();
+                                                            const ganador = partida.ganador || '-';
                                                             const item = document.createElement('div');
-                                                            const conteo = { A: 0, B: 0, C: 0, D: 0 };
-                                                            const respuestas = s.respuestas || {};
-                                                            Object.values(respuestas).forEach(r => { if (conteo[r] !== undefined) conteo[r] += 1; });
-                                                            const total = Object.values(conteo).reduce((sum, n) => sum + n, 0);
-                                                            const pct = letter => total ? `${Math.round((conteo[letter] / total) * 100)}%` : '0%';
                                                             item.className = 'question-item';
                                                             item.innerHTML = `
-                                                                <div class="title">${s.pregunta?.texto || 'Pregunta'}</div>
-                                                                <div class="small-note">${new Date(s.timestamp).toLocaleString()}</div>
-                                                                <div class="meta small-note">A: ${conteo.A} (${pct('A')}) · B: ${conteo.B} (${pct('B')}) · C: ${conteo.C} (${pct('C')}) · D: ${conteo.D} (${pct('D')})</div>
+                                                                <div class="title">Partida #${partida.partida_id + 1} — ${fecha}</div>
+                                                                <div class="small-note">Ganador: <b>${ganador}</b></div>
                                                                 <div class="btn-group" style="margin-top: 0.75rem;">
-                                                                    <button class="btn btn-secondary" type="button" onclick="mostrarDetallesSesion(${s.idx})">Ver detalles de partida</button>
-                                                                    <button class="btn btn-primary" type="button" onclick="descargarSesion(${s.idx})">Descargar CSV</button>
+                                                                    <button class="btn btn-secondary" type="button" onclick="mostrarDetallesSesion(${partida.idx})">Ver detalles</button>
+                                                                    <button class="btn btn-primary" type="button" onclick="descargarPartida(${partida.idx})">Descargar CSV</button>
                                                                 </div>
                                                             `;
                                                             list.appendChild(item);
@@ -1136,6 +1153,48 @@
                                         function mostrarDetallesSesion(idx) {
                                             const sesion = sesiones[idx];
                                             if (!sesion) return;
+                                            // Si la partida contiene detalles de preguntas (partida completa)
+                                            if (sesion.detalles_preguntas) {
+                                                const detalles = sesion.detalles_preguntas;
+                                                const filas = detalles.map(d => {
+                                                    // crear resumen por pregunta
+                                                    const respuestas = d.respuestas || {};
+                                                    const lista = Object.keys(respuestas).sort((a,b)=>Number(a)-Number(b)).map(id => {
+                                                        const nombre = sesion.alumnos?.[id]?.nombre || `Alumno ${Number(id)}`;
+                                                        const resp = respuestas[id] || '';
+                                                        return `<tr><td>#${Number(id)}</td><td>${nombre}</td><td>${resp}</td></tr>`;
+                                                    }).join('');
+                                                    return `
+                                                        <div style="margin-top:1rem;">
+                                                            <h3>Pregunta ${d.pregunta_idx + 1}: ${d.texto}</h3>
+                                                            <p class="small-note">Respuesta correcta: <b>${d.correcta}</b></p>
+                                                            <div style="overflow-x:auto;">
+                                                                <table style="width:100%; border-collapse: collapse;">
+                                                                    <thead><tr style="text-align:left; border-bottom: 1px solid var(--border);"><th>#</th><th>Alumno</th><th>Respuesta</th></tr></thead>
+                                                                    <tbody>${lista}</tbody>
+                                                                </table>
+                                                            </div>
+                                                        </div>
+                                                    `;
+                                                }).join('');
+                                                // Puntuaciones
+                                                const puntuaciones = sesion.puntuaciones || {};
+                                                const puntuacionesHtml = Object.entries(puntuaciones).sort((a,b)=>b[1]-a[1]).map(([id,p])=>{
+                                                    const nombre = sesion.alumnos?.[id]?.nombre || `Alumno ${id}`;
+                                                    return `<tr><td>${nombre}</td><td>${p}</td></tr>`;
+                                                }).join('');
+                                                const content = `
+                                                    <h2>Detalle de la partida</h2>
+                                                    <p class="small-note">Partida #${sesion.partida_id ?? idx} · ${new Date(sesion.timestamp).toLocaleString()}</p>
+                                                    <h3>Puntuaciones</h3>
+                                                    <table style="width:100%; border-collapse: collapse; margin-bottom:1rem;"><thead><tr style="text-align:left; border-bottom: 1px solid var(--border);"><th>Alumno</th><th>Puntos</th></tr></thead><tbody>${puntuacionesHtml}</tbody></table>
+                                                    ${filas}
+                                                `;
+                                                document.getElementById('modalResultsContent').innerHTML = content;
+                                                document.getElementById('modalResults').classList.add('visible');
+                                                return;
+                                            }
+                                            // Fallback para sesiones antiguas (una sola pregunta)
                                             const respuestas = sesion.respuestas || {};
                                             const pregunta = sesion.pregunta || {};
                                             const lista = Object.keys(respuestas).sort((a, b) => Number(a) - Number(b)).map(id => {
@@ -1164,8 +1223,8 @@
                                             document.getElementById('modalResults').classList.add('visible');
                                         }
 
-                                        function descargarSesion(idx) {
-                                            window.location.href = `/api/sesion/${idx}/export`;
+                                        function descargarPartida(idx) {
+                                            window.location.href = `/api/partida/${idx}/export`;
                                         }
 
                                         function guardarSesion() {

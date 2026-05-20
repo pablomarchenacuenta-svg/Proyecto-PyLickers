@@ -1,229 +1,166 @@
 {
   "preguntas": [],
   "sesiones": [],
-  "alumnos": {
-    "25": {
-      "nombre": "<u>test"
-    },
-    "26": {
-      "nombre": "53w5"
-    }
-  },
-  "juegos": [
-    {
-      "nombre": "test",
-      "descripcion": "Juego general",
-      "preguntas": [
-        {
-          "texto": "test2",
-          "opciones": {
-            "A": "test2",
-            "B": "test2",
-            "C": "test2",
-            "D": "test2"
-          },
-          "correcta": "A"
-        },
-        {
-          "correcta": "A",
-          "opciones": {
-            "A": "test",
-            "B": "test",
-            "C": "test",
-            "D": "test"
-          },
-          "texto": "test"
-        },
-        {
-          "correcta": "C",
-          "opciones": {
-            "A": "test2",
-            "B": "test2",
-            "C": "test2",
-            "D": "test2"
-          },
-          "texto": "test2"
-        }
-      ]
-    }
-  ],
   "partidas": [
     {
       "partida_id": 0,
-      "timestamp": "2026-05-16T14:45:29.477231",
+      "timestamp": "2026-05-20T12:46:10.005248",
       "juego": {
         "id": 0,
-        "nombre": "General",
-        "descripcion": "Juego general"
+        "nombre": "PSEINT"
       },
       "pregunta": {
         "pregunta_idx": 0,
-        "texto": "test2",
-        "correcta": "C",
+        "texto": "¿Cuál es la instrucción utilizada en PSeInt para mostrar un mensaje o el valor de una variable en la pantalla?",
+        "correcta": "B",
         "opciones": {
-          "A": "test2",
-          "B": "test2",
-          "C": "test2",
-          "D": "test2"
+          "A": "Leer",
+          "B": "Escribir",
+          "C": "Imprimir",
+          "D": "Print"
         }
       },
-      "respuestas": {
-        "25": "A",
-        "27": "A",
-        "29": "A"
-      },
+      "respuestas": {},
       "alumnos": {},
-      "total_respuestas": 3
+      "total_respuestas": 0
     },
     {
       "partida_id": 1,
-      "timestamp": "2026-05-16T14:46:38.975067",
+      "timestamp": "2026-05-20T12:46:10.005248",
       "juego": {
         "id": 0,
-        "nombre": "General",
-        "descripcion": "Juego general"
+        "nombre": "PSEINT"
       },
       "pregunta": {
-        "pregunta_idx": 2,
-        "texto": "test",
+        "pregunta_idx": 1,
+        "texto": "¿Cuál de las siguientes opciones es la forma correcta de asignar el resultado de una operación a una variable en PSeInt?",
         "correcta": "A",
         "opciones": {
-          "A": "test",
-          "B": "test",
-          "C": "test",
-          "D": "test"
+          "A": "x <- 5 + 3",
+          "B": "x = 5 + 3",
+          "C": "x == 5 + 3",
+          "D": "Asignar x = 5 + 3"
         }
       },
-      "respuestas": {
-        "17": "B",
-        "25": "A",
-        "27": "A",
-        "29": "A"
-      },
+      "respuestas": {},
       "alumnos": {},
-      "total_respuestas": 4
+      "total_respuestas": 0
     },
     {
       "partida_id": 2,
-      "timestamp": "2026-05-18T11:47:00.221891",
+      "timestamp": "2026-05-20T12:47:21.878710",
       "juego": {
         "id": 0,
-        "nombre": "General",
-        "descripcion": "Juego general"
+        "nombre": "PSEINT"
       },
       "pregunta": {
         "pregunta_idx": 0,
-        "texto": "test",
-        "correcta": "A",
+        "texto": "¿Cuál es la instrucción utilizada en PSeInt para mostrar un mensaje o el valor de una variable en la pantalla?",
+        "correcta": "B",
         "opciones": {
-          "A": "test",
-          "B": "test",
-          "C": "test",
-          "D": "test"
+          "A": "Leer",
+          "B": "Escribir",
+          "C": "Imprimir",
+          "D": "Print"
         }
       },
-      "respuestas": {
-        "17": "B",
-        "25": "A",
-        "26": "D"
-      },
+      "respuestas": {},
       "alumnos": {},
-      "total_respuestas": 3
+      "total_respuestas": 0
     },
     {
       "partida_id": 3,
-      "timestamp": "2026-05-18T12:21:32.683380",
+      "timestamp": "2026-05-20T12:47:21.878710",
       "juego": {
         "id": 0,
-        "nombre": "test"
+        "nombre": "PSEINT"
       },
       "pregunta": {
-        "pregunta_idx": 0,
-        "texto": "test2",
+        "pregunta_idx": 1,
+        "texto": "¿Cuál de las siguientes opciones es la forma correcta de asignar el resultado de una operación a una variable en PSeInt?",
         "correcta": "A",
         "opciones": {
-          "A": "test2",
-          "B": "test2",
-          "C": "test2",
-          "D": "test2"
+          "A": "x <- 5 + 3",
+          "B": "x = 5 + 3",
+          "C": "x == 5 + 3",
+          "D": "Asignar x = 5 + 3"
         }
       },
       "respuestas": {
-        "26": "A"
+        "28": "A"
       },
-      "alumnos": {
-        "25": {
-          "nombre": "<u>test"
-        },
-        "26": {
-          "nombre": "53w5"
-        }
-      },
+      "alumnos": {},
       "total_respuestas": 1
     },
     {
       "partida_id": 4,
-      "timestamp": "2026-05-18T12:21:32.683380",
+      "timestamp": "2026-05-20T12:58:21.699926",
       "juego": {
         "id": 0,
-        "nombre": "test"
+        "nombre": "PSEINT"
       },
-      "pregunta": {
-        "pregunta_idx": 1,
-        "texto": "test",
-        "correcta": "A",
-        "opciones": {
-          "A": "test",
-          "B": "test",
-          "C": "test",
-          "D": "test"
-        }
-      },
-      "respuestas": {
-        "26": "B",
-        "25": "D"
-      },
-      "alumnos": {
-        "25": {
-          "nombre": "<u>test"
+      "alumnos": {},
+      "puntuaciones": {},
+      "ganador": "Sin ganador",
+      "detalles_preguntas": [
+        {
+          "pregunta_idx": 0,
+          "texto": "¿Cuál es la instrucción utilizada en PSeInt para mostrar un mensaje o el valor de una variable en la pantalla?",
+          "correcta": "B",
+          "opciones": {
+            "A": "Leer",
+            "B": "Escribir",
+            "C": "Imprimir",
+            "D": "Print"
+          },
+          "respuestas": {}
         },
-        "26": {
-          "nombre": "53w5"
+        {
+          "pregunta_idx": 1,
+          "texto": "¿Cuál de las siguientes opciones es la forma correcta de asignar el resultado de una operación a una variable en PSeInt?",
+          "correcta": "A",
+          "opciones": {
+            "A": "x <- 5 + 3",
+            "B": "x = 5 + 3",
+            "C": "x == 5 + 3",
+            "D": "Asignar x = 5 + 3"
+          },
+          "respuestas": {
+            "28": "C",
+            "25": "C",
+            "26": "A"
+          }
         }
-      },
-      "total_respuestas": 2
-    },
+      ]
+    }
+  ],
+  "alumnos": {},
+  "juegos": [
     {
-      "partida_id": 5,
-      "timestamp": "2026-05-18T12:21:32.683380",
-      "juego": {
-        "id": 0,
-        "nombre": "test"
-      },
-      "pregunta": {
-        "pregunta_idx": 2,
-        "texto": "test2",
-        "correcta": "C",
-        "opciones": {
-          "A": "test2",
-          "B": "test2",
-          "C": "test2",
-          "D": "test2"
-        }
-      },
-      "respuestas": {
-        "25": "D",
-        "26": "B"
-      },
-      "alumnos": {
-        "25": {
-          "nombre": "<u>test"
+      "nombre": "PSEINT",
+      "descripcion": "Juego de PSEINT",
+      "preguntas": [
+        {
+          "texto": "¿Cuál es la instrucción utilizada en PSeInt para mostrar un mensaje o el valor de una variable en la pantalla?",
+          "opciones": {
+            "A": "Leer",
+            "B": "Escribir",
+            "C": "Imprimir",
+            "D": "Print"
+          },
+          "correcta": "B"
         },
-        "26": {
-          "nombre": "53w5"
+        {
+          "texto": "¿Cuál de las siguientes opciones es la forma correcta de asignar el resultado de una operación a una variable en PSeInt?",
+          "opciones": {
+            "A": "x <- 5 + 3",
+            "B": "x = 5 + 3",
+            "C": "x == 5 + 3",
+            "D": "Asignar x = 5 + 3"
+          },
+          "correcta": "A"
         }
-      },
-      "total_respuestas": 2
+      ]
     }
   ]
 }

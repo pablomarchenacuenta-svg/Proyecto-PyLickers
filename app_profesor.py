@@ -697,34 +697,32 @@ def api_pregunta_siguiente():
     juego_en_progreso = sesion_activa["juego_en_progreso"]
     pregunta_actual = juego_en_progreso["pregunta_actual"]
     
-    # Activar pausa para bufferizar entradas mientras hacemos snapshot
+
+    # 1. Reset de respuestas para la siguiente pregunta (antes de guardar)
+    sesion_activa["respuestas"] = {}
+    sesion_activa["reset_counter"] = sesion_activa.get("reset_counter", 0) + 1
+    sesion_activa["reset_scheduled"] = False
+
+    # 2. Activar pausa para bufferizar entradas mientras hacemos snapshot
     sesion_activa["pausing"] = True
 
-    # Guardar respuestas de la pregunta actual (snapshot)
+    # 3. Guardar respuestas de la pregunta actual (snapshot)
     respuestas_actuales = dict(sesion_activa.get("respuestas", {}))
     if respuestas_actuales:
         sesion_activa.setdefault("respuestas_por_pregunta", {})[pregunta_actual] = respuestas_actuales
 
-    # Reset de respuestas para la siguiente pregunta
-    sesion_activa["respuestas"] = {}
-    # Incrementar contador de reset para que el detector borre su acumulado
-    sesion_activa["reset_counter"] = sesion_activa.get("reset_counter", 0) + 1
-    sesion_activa["reset_scheduled"] = False
-
-    # Desactivar pausa y aplicar cualquier buffer recibido durante la operación
+    # 4. Desactivar pausa y aplicar cualquier buffer recibido durante la operación
     buffered = sesion_activa.get("incoming_buffer", []) or []
-    # Merge buffered dicts into respuestas (correspond to next question)
     merged = {}
     for b in buffered:
         if isinstance(b, dict):
             merged.update(b)
     sesion_activa["incoming_buffer"] = []
     sesion_activa["pausing"] = False
-    # Apply merged buffered responses to the active respuestas store
     if merged:
         sesion_activa.setdefault("respuestas", {}).update(merged)
-    
-    # Avanzar a la siguiente pregunta
+
+    # 5. Avanzar a la siguiente pregunta
     pregunta_actual += 1
     juego_en_progreso["pregunta_actual"] = pregunta_actual
     
@@ -771,32 +769,48 @@ def api_finalizar_juego():
     preguntas = juego.get("preguntas", [])
     alumnos = datos.get("alumnos", {})
     
-    # Crear un registro por cada pregunta del juego
+    # Guardar la partida completa (todas las preguntas y respuestas)
+    puntuaciones = {str(k): 0 for k in alumnos.keys()}
+    detalles_preguntas = []
     for q_idx, pregunta in enumerate(preguntas):
         respuestas_pregunta = sesion_activa["respuestas_por_pregunta"].get(q_idx, {})
-        
-        registro = {
-            "partida_id": len(datos.get("partidas", [])),
-            "timestamp": datetime.now().isoformat(),
-            "juego": {
-                "id": juego_idx,
-                "nombre": juego.get("nombre", "Juego"),
-            },
-            "pregunta": {
-                "pregunta_idx": q_idx,
-                "texto": pregunta.get("texto", ""),
-                "correcta": pregunta.get("correcta", ""),
-                "opciones": pregunta.get("opciones", {}),
-            },
-            "respuestas": respuestas_pregunta,
-            "alumnos": alumnos,
-            "total_respuestas": len(respuestas_pregunta),
-        }
-        datos.setdefault("partidas", []).append(registro)
-    
+        correcta = pregunta.get("correcta", "")
+        for alumno_id in alumnos.keys():
+            resp = respuestas_pregunta.get(str(alumno_id))
+            if resp is None or resp == '':
+                continue  # sin respuesta, suma 0
+            if resp == correcta:
+                puntuaciones[str(alumno_id)] = puntuaciones.get(str(alumno_id), 0) + 3
+            else:
+                puntuaciones[str(alumno_id)] = puntuaciones.get(str(alumno_id), 0) - 1
+        detalles_preguntas.append({
+            "pregunta_idx": q_idx,
+            "texto": pregunta.get("texto", ""),
+            "correcta": correcta,
+            "opciones": pregunta.get("opciones", {}),
+            "respuestas": respuestas_pregunta
+        })
+
+    max_puntos = max(puntuaciones.values()) if puntuaciones else 0
+    ganadores = [alumnos[k]["nombre"] if alumnos.get(k) and alumnos[k].get("nombre") else f"Alumno {k}" for k, v in puntuaciones.items() if v == max_puntos and max_puntos > 0]
+    ganador = ", ".join(ganadores) if ganadores else "Sin ganador"
+
+    partida = {
+        "partida_id": len(datos.get("partidas", [])),
+        "timestamp": datetime.now().isoformat(),
+        "juego": {
+            "id": juego_idx,
+            "nombre": juego.get("nombre", "Juego"),
+        },
+        "alumnos": alumnos,
+        "puntuaciones": puntuaciones,
+        "ganador": ganador,
+        "detalles_preguntas": detalles_preguntas
+    }
+    datos.setdefault("partidas", []).append(partida)
     datos.setdefault("sesiones", datos["partidas"])
     guardar_datos(datos)
-    
+
     # Limpiar estado del juego
     sesion_activa["juego_en_progreso"] = None
     sesion_activa["respuestas_por_pregunta"] = {}
@@ -828,8 +842,43 @@ def api_finalizar_juego():
             pass
     detector_proc = None
     
-    print(f"Juego '{juego.get('nombre')}' finalizado. {len(preguntas)} preguntas guardadas.")
-    return jsonify({"ok": True, "preguntas_guardadas": len(preguntas)})
+    print(f"Juego '{juego.get('nombre')}' finalizado. {len(preguntas)} preguntas guardadas. Ganador: {ganador}")
+    return jsonify({"ok": True, "preguntas_guardadas": len(preguntas), "ganador": ganador, "puntuaciones": puntuaciones})
+@app.route('/api/partida/<int:partida_id>/export')
+def api_exportar_partida(partida_id):
+    datos = cargar_datos()
+    partidas = datos.get('partidas', [])
+    if partida_id < 0 or partida_id >= len(partidas):
+        return jsonify({'error': 'Partida no encontrada'}), 404
+    partida = partidas[partida_id]
+    alumnos = partida.get('alumnos', {})
+    detalles = partida.get('detalles_preguntas', [])
+    # CSV: Alumno, P1, P2, ..., Pn, Total, Ganador
+    csv_buffer = io.StringIO()
+    writer = csv.writer(csv_buffer)
+    header = ['Alumno'] + [f'P{d["pregunta_idx"]+1}' for d in detalles] + ['Total']
+    writer.writerow(header)
+    for i in range(NUM_ALUMNOS):
+        nombre = alumnos.get(str(i), {}).get('nombre', f'Alumno {i+1}')
+        row = [nombre]
+        total = 0
+        for d in detalles:
+            resp = d['respuestas'].get(str(i), '')
+            correcta = d['correcta']
+            if resp == '':
+                row.append('')
+            elif resp == correcta:
+                row.append(f'{resp} (+3)')
+                total += 3
+            else:
+                row.append(f'{resp} (-1)')
+                total -= 1
+        row.append(total)
+        writer.writerow(row)
+    output = csv_buffer.getvalue()
+    response = Response(output, mimetype="text/csv")
+    response.headers["Content-Disposition"] = f"attachment; filename=partida_{partida_id}_juego.csv"
+    return response
 
 
 @app.route("/api/partidas")
