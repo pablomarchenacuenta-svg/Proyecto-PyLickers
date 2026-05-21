@@ -418,6 +418,7 @@ class DetectorThread(threading.Thread):
         self.show_window = show_window
         self.running = False
         self.latest_frame = None
+        self.respuestas_acumuladas = {}
         self._cap = None
 
     def get_latest_frame(self):
@@ -446,7 +447,8 @@ class DetectorThread(threading.Thread):
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
-        respuestas_acumuladas = {}
+        # use instance attribute for accumulated responses so external callers can clear it
+        self.respuestas_acumuladas = getattr(self, 'respuestas_acumuladas', {})
         last_reset_counter = int(self.sesion_activa.get('reset_counter', 0)) if self.sesion_activa else 0
         modo_debug = False
         self.running = True
@@ -455,16 +457,18 @@ class DetectorThread(threading.Thread):
             while self.running:
                 ret, frame = cap.read()
                 if not ret:
+                    print(f"DetectorThread: no se pudo leer frame desde la cámara {self.cam_index}. Deteniendo hilo.")
+                    self.running = False
                     break
 
                 respuestas_actuales, corners, ids = detectar_tarjetas(frame, detector, num_alumnos=self.num_alumnos)
-                respuestas_acumuladas.update(respuestas_actuales)
+                self.respuestas_acumuladas.update(respuestas_actuales)
 
                 # Apply server-requested reset_counter
                 try:
                     srv = int(self.sesion_activa.get('reset_counter', 0)) if self.sesion_activa else 0
                     if srv > last_reset_counter:
-                        respuestas_acumuladas = {}
+                        self.respuestas_acumuladas = {}
                         last_reset_counter = srv
                 except Exception:
                     pass
@@ -474,11 +478,11 @@ class DetectorThread(threading.Thread):
                     self.sesion_activa.setdefault('incoming_buffer', []).append(respuestas_actuales)
                 else:
                     if self.sesion_activa is not None:
-                        self.sesion_activa.setdefault('respuestas', {}).update(respuestas_acumuladas)
+                        self.sesion_activa.setdefault('respuestas', {}).update(self.respuestas_acumuladas)
 
                 # Draw overlays
                 resultado = dibujar_detecciones(frame, corners, ids, respuestas_actuales, num_alumnos=self.num_alumnos)
-                resultado = dibujar_panel_estado(resultado, respuestas_acumuladas, respuestas_actuales, num_alumnos=self.num_alumnos)
+                resultado = dibujar_panel_estado(resultado, self.respuestas_acumuladas, respuestas_actuales, num_alumnos=self.num_alumnos)
 
                 # Encode to JPEG for streaming
                 try:
@@ -499,9 +503,9 @@ class DetectorThread(threading.Thread):
                         filename = f"pylickers_resultado_{timestamp}.json"
                         datos = {
                             'timestamp': timestamp,
-                            'respuestas': respuestas_acumuladas,
-                            'resumen': { letra: sum(1 for v in respuestas_acumuladas.values() if v == letra) for letra in 'ABCD' },
-                            'total_detectados': len(respuestas_acumuladas),
+                            'respuestas': self.respuestas_acumuladas,
+                            'resumen': { letra: sum(1 for v in self.respuestas_acumuladas.values() if v == letra) for letra in 'ABCD' },
+                            'total_detectados': len(self.respuestas_acumuladas),
                         }
                         with open(filename, 'w', encoding='utf-8') as f:
                             json.dump(datos, f, indent=2, ensure_ascii=False)
@@ -519,6 +523,8 @@ class DetectorThread(threading.Thread):
 
                 # Sleep a bit to avoid hogging CPU
                 time.sleep(0.01)
+                # If frame reading is failing repeatedly, stop
+                # (handled by ret check above)
         finally:
             try:
                 cap.release()

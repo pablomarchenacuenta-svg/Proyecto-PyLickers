@@ -53,7 +53,7 @@ app = Flask(__name__)
 # ── Configuración ────────────────────────────────
 NUM_ALUMNOS = 30  # Número máximo de alumnos, configurable por argumento
 DATA_FILE = "pylickers_data.json"
-DETECTOR_KEEP_RUNNING = True
+DETECTOR_KEEP_RUNNING = False
 
 
 def cargar_datos():
@@ -785,6 +785,13 @@ def api_pregunta_siguiente():
     sesion_activa["reset_counter"] = sesion_activa.get("reset_counter", 0) + 1
     sesion_activa["reset_scheduled"] = False
 
+    # Si el detector corre en el mismo proceso, limpiar su memoria interna
+    try:
+        if detector_thread is not None and getattr(detector_thread, 'is_alive', lambda: False)():
+            detector_thread.respuestas_acumuladas = {}
+    except Exception:
+        pass
+
     # 4. Desactivar pausa y aplicar cualquier buffer recibido durante la operación
     buffered = sesion_activa.get("incoming_buffer", []) or []
     merged = {}
@@ -969,32 +976,93 @@ def api_exportar_partida(partida_id):
     partida = partidas[partida_id]
     alumnos = partida.get('alumnos', {})
     detalles = partida.get('detalles_preguntas', [])
-    # CSV: Alumno, P1, P2, ..., Pn, Total, Ganador
-    csv_buffer = io.StringIO()
-    writer = csv.writer(csv_buffer)
-    header = ['Alumno'] + [f'P{d["pregunta_idx"]+1}' for d in detalles] + ['Total']
-    writer.writerow(header)
-    for i in range(NUM_ALUMNOS):
-        nombre = alumnos.get(str(i), {}).get('nombre', f'Alumno {i+1}')
-        row = [nombre]
+
+    # Build XML Spreadsheet 2003 (xls) with two worksheets: Puntuaciones and Respuestas
+    def esc(text):
+        return (str(text) if text is not None else '').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+    rows_puntuaciones = []
+    # Header
+    rows_puntuaciones.append('<Row><Cell><Data ss:Type="String">Alumno</Data></Cell><Cell><Data ss:Type="Number">Puntuación</Data></Cell></Row>')
+    # Collect total scores from partida
+    puntuaciones = partida.get('puntuaciones', {})
+    for pid, score in puntuaciones.items():
+        nombre = alumnos.get(str(pid), {}).get('nombre') or alumnos.get(pid, {}).get('nombre') or f'Alumno {int(pid) + 1}' if pid is not None else 'Alumno'
+        rows_puntuaciones.append(f'<Row><Cell><Data ss:Type="String">{esc(nombre)}</Data></Cell><Cell><Data ss:Type="Number">{score}</Data></Cell></Row>')
+
+    # Build respuestas worksheet: header row
+    header_cells = ['<Cell><Data ss:Type="String">Alumno</Data></Cell>']
+    for d in detalles:
+        header_cells.append(f'<Cell><Data ss:Type="String">P{d.get("pregunta_idx", "?")+1}</Data></Cell>')
+    header_cells.append('<Cell><Data ss:Type="String">Total</Data></Cell>')
+    rows_respuestas = []
+    rows_respuestas.append('<Row>' + ''.join(header_cells) + '</Row>')
+
+    # For each alumno in the partida's alumnos dict (use sorted numeric keys when possible)
+    try:
+        keys = sorted([int(k) for k in alumnos.keys()])
+    except Exception:
+        keys = list(range(NUM_ALUMNOS))
+
+    for i in keys:
+        sid = str(i)
+        nombre = alumnos.get(sid, {}).get('nombre', f'Alumno {i+1}')
+        cells = [f'<Cell><Data ss:Type="String">{esc(nombre)}</Data></Cell>']
         total = 0
         for d in detalles:
-            resp = d['respuestas'].get(str(i), '')
-            correcta = d['correcta']
+            resp = d.get('respuestas', {}).get(sid, '')
             if resp == '':
-                row.append('')
-            elif resp == correcta:
-                row.append(f'{resp} (+3)')
-                total += 3
+                cells.append('<Cell><Data ss:Type="String"></Data></Cell>')
             else:
-                row.append(f'{resp} (-1)')
-                total -= 1
-        row.append(total)
-        writer.writerow(row)
-    output = csv_buffer.getvalue()
-    response = Response(output, mimetype="text/csv")
-    response.headers["Content-Disposition"] = f"attachment; filename=partida_{partida_id}_juego.csv"
+                correcta = d.get('correcta', '')
+                if resp == correcta:
+                    cells.append(f'<Cell><Data ss:Type="String">{esc(resp)} (+3)</Data></Cell>')
+                    total += 3
+                else:
+                    cells.append(f'<Cell><Data ss:Type="String">{esc(resp)} (-1)</Data></Cell>')
+                    total -= 1
+        cells.append(f'<Cell><Data ss:Type="Number">{total}</Data></Cell>')
+        rows_respuestas.append('<Row>' + ''.join(cells) + '</Row>')
+
+    # Build full XML
+    xml = f'''<?xml version="1.0"?>
+    <?mso-application progid="Excel.Sheet"?>
+    <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+      xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:x="urn:schemas-microsoft-com:office:excel"
+      xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+      <Worksheet ss:Name="Puntuaciones">
+        <Table>
+          {''.join(rows_puntuaciones)}
+        </Table>
+      </Worksheet>
+      <Worksheet ss:Name="Respuestas">
+        <Table>
+          {''.join(rows_respuestas)}
+        </Table>
+      </Worksheet>
+    </Workbook>'''
+
+    response = Response(xml, mimetype='application/vnd.ms-excel')
+    response.headers['Content-Disposition'] = f'attachment; filename=partida_{partida_id}_juego.xls'
     return response
+
+
+@app.route('/api/partida/<int:partida_id>', methods=['DELETE'])
+def api_borrar_partida(partida_id):
+    datos = cargar_datos()
+    partidas = datos.get('partidas', [])
+    if partida_id < 0 or partida_id >= len(partidas):
+        return jsonify({'error': 'Partida no encontrada'}), 404
+    # Remove the partida
+    partidas.pop(partida_id)
+    # Reindex partida_id for remaining partidas
+    for idx, p in enumerate(partidas):
+        p['partida_id'] = idx
+    datos['partidas'] = partidas
+    datos['sesiones'] = partidas
+    guardar_datos(datos)
+    return jsonify({'ok': True, 'removed': 1})
 
 
 @app.route("/api/partidas")
