@@ -1052,7 +1052,7 @@
                                                         html += '<table style="width:100%;margin-top:1rem;text-align:left;">';
                                                         html += '<tr><th>Alumno</th><th>Puntos</th></tr>';
                                                         Object.entries(puntuaciones).sort((a,b)=>b[1]-a[1]).forEach(([id, puntos]) => {
-                                                            const nombre = alumnosNombres[id]?.nombre || `Alumno ${id}`;
+                                                            const nombre = alumnosNombres[id]?.nombre || `Alumno ${Number(id) + 1}`;
                                                             html += `<tr><td>${nombre}</td><td>${puntos}</td></tr>`;
                                                         });
                                                         html += '</table>';

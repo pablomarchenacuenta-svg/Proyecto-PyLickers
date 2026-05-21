@@ -772,18 +772,18 @@ def api_pregunta_siguiente():
     pregunta_actual = juego_en_progreso["pregunta_actual"]
     
 
-    # 1. Reset de respuestas para la siguiente pregunta (antes de guardar)
-    sesion_activa["respuestas"] = {}
-    sesion_activa["reset_counter"] = sesion_activa.get("reset_counter", 0) + 1
-    sesion_activa["reset_scheduled"] = False
-
-    # 2. Activar pausa para bufferizar entradas mientras hacemos snapshot
+    # 1. Activar pausa para bufferizar entradas mientras hacemos snapshot
     sesion_activa["pausing"] = True
 
-    # 3. Guardar respuestas de la pregunta actual (snapshot)
+    # 2. Guardar respuestas de la pregunta actual (snapshot) ANTES de resetear
     respuestas_actuales = dict(sesion_activa.get("respuestas", {}))
     if respuestas_actuales:
         sesion_activa.setdefault("respuestas_por_pregunta", {})[pregunta_actual] = respuestas_actuales
+
+    # 3. Ahora sí, resetear para la siguiente pregunta e indicar reinicio al detector
+    sesion_activa["respuestas"] = {}
+    sesion_activa["reset_counter"] = sesion_activa.get("reset_counter", 0) + 1
+    sesion_activa["reset_scheduled"] = False
 
     # 4. Desactivar pausa y aplicar cualquier buffer recibido durante la operación
     buffered = sesion_activa.get("incoming_buffer", []) or []
@@ -844,19 +844,36 @@ def api_finalizar_juego():
     alumnos = datos.get("alumnos", {})
     
     # Guardar la partida completa (todas las preguntas y respuestas)
-    puntuaciones = {str(k): 0 for k in alumnos.keys()}
     detalles_preguntas = []
+    respuestas_por_pregunta = sesion_activa.get("respuestas_por_pregunta", {})
+
+    # Identificar participantes (aquellos que respondieron al menos una pregunta)
+    participantes = set()
+    for q_idx in range(len(preguntas)):
+        rp = respuestas_por_pregunta.get(q_idx, {})
+        for aid in rp.keys():
+            participantes.add(str(aid))
+
+    # Inicializar puntuaciones solo para participantes
+    puntuaciones = {p_id: 0 for p_id in participantes}
+
     for q_idx, pregunta in enumerate(preguntas):
-        respuestas_pregunta = sesion_activa["respuestas_por_pregunta"].get(q_idx, {})
+        respuestas_pregunta = respuestas_por_pregunta.get(q_idx, {})
         correcta = pregunta.get("correcta", "")
-        for alumno_id in alumnos.keys():
-            resp = respuestas_pregunta.get(str(alumno_id))
+        for p_id in list(participantes):
+            # respuestas pueden ser int o string
+            resp = respuestas_pregunta.get(p_id)
+            if resp is None:
+                try:
+                    resp = respuestas_pregunta.get(int(p_id))
+                except Exception:
+                    resp = None
             if resp is None or resp == '':
-                continue  # sin respuesta, suma 0
+                continue
             if resp == correcta:
-                puntuaciones[str(alumno_id)] = puntuaciones.get(str(alumno_id), 0) + 3
+                puntuaciones[p_id] = puntuaciones.get(p_id, 0) + 3
             else:
-                puntuaciones[str(alumno_id)] = puntuaciones.get(str(alumno_id), 0) - 1
+                puntuaciones[p_id] = puntuaciones.get(p_id, 0) - 1
         detalles_preguntas.append({
             "pregunta_idx": q_idx,
             "texto": pregunta.get("texto", ""),
@@ -865,9 +882,25 @@ def api_finalizar_juego():
             "respuestas": respuestas_pregunta
         })
 
-    max_puntos = max(puntuaciones.values()) if puntuaciones else 0
-    ganadores = [alumnos[k]["nombre"] if alumnos.get(k) and alumnos[k].get("nombre") else f"Alumno {k}" for k, v in puntuaciones.items() if v == max_puntos and max_puntos > 0]
-    ganador = ", ".join(ganadores) if ganadores else "Sin ganador"
+    # Determinar ganadores (permitir max <= 0)
+    if puntuaciones:
+        max_puntos = max(puntuaciones.values())
+        ganadores = []
+        for p_id, puntos in puntuaciones.items():
+            if puntos == max_puntos:
+                nombre = None
+                # alumnos dict keys may be strings
+                if isinstance(alumnos, dict):
+                    nombre = (alumnos.get(p_id) or alumnos.get(str(p_id)) or {}).get("nombre")
+                if not nombre:
+                    try:
+                        nombre = f"Alumno {int(p_id) + 1}"
+                    except Exception:
+                        nombre = f"Alumno {p_id}"
+                ganadores.append(nombre)
+        ganador = ", ".join(ganadores) if ganadores else "Sin ganador"
+    else:
+        ganador = "Sin ganador"
 
     partida = {
         "partida_id": len(datos.get("partidas", [])),

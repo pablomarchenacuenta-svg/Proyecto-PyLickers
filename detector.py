@@ -115,11 +115,11 @@ def determinar_respuesta(corners, num_alumnos=NUM_ALUMNOS):
     if 180 <= angulo < 270:
         return "A"
     elif 270 <= angulo < 360:
-        return "B"
+        return "D"
     elif 0 <= angulo < 90:
         return "C"
     else:  # 90 <= angulo < 180
-        return "D"
+        return "B"
 
 
 def detectar_tarjetas(frame, detector, num_alumnos=NUM_ALUMNOS):
