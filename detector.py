@@ -23,6 +23,8 @@ Requisitos:
 
 import cv2
 import numpy as np
+import threading
+import io
 import argparse
 import json
 import time
@@ -74,7 +76,7 @@ def inicializar_detector():
     return detector
 
 
-def determinar_respuesta(corners):
+def determinar_respuesta(corners, num_alumnos=NUM_ALUMNOS):
     """
     Determina la respuesta (A/B/C/D) a partir de la orientación del marcador.
 
@@ -120,7 +122,7 @@ def determinar_respuesta(corners):
         return "D"
 
 
-def detectar_tarjetas(frame, detector):
+def detectar_tarjetas(frame, detector, num_alumnos=NUM_ALUMNOS):
     """
     Detecta todos los marcadores ArUco en el frame.
     Devuelve un diccionario {id_alumno: respuesta}.
@@ -132,8 +134,8 @@ def detectar_tarjetas(frame, detector):
 
     if ids is not None:
         for i, marker_id in enumerate(ids.flatten()):
-            if 0 <= marker_id < NUM_ALUMNOS:
-                respuesta = determinar_respuesta(corners[i])
+            if 0 <= marker_id < num_alumnos:
+                respuesta = determinar_respuesta(corners[i], num_alumnos=num_alumnos)
                 respuestas[int(marker_id)] = respuesta
 
     return respuestas, corners, ids
@@ -143,13 +145,13 @@ def detectar_tarjetas(frame, detector):
 # FUNCIONES DE VISUALIZACIÓN
 # ══════════════════════════════════════════════════════════════════
 
-def dibujar_detecciones(frame, corners, ids, respuestas):
+def dibujar_detecciones(frame, corners, ids, respuestas, num_alumnos=NUM_ALUMNOS):
     """Dibuja los marcadores detectados sobre el frame de la cámara."""
     if ids is None:
         return frame
 
     for i, marker_id in enumerate(ids.flatten()):
-        if marker_id >= NUM_ALUMNOS:
+        if marker_id >= num_alumnos:
             continue
 
         pts = corners[i][0].astype(int)
@@ -176,7 +178,7 @@ def dibujar_detecciones(frame, corners, ids, respuestas):
     return frame
 
 
-def dibujar_panel_estado(frame, respuestas_acumuladas, respuestas_actuales):
+def dibujar_panel_estado(frame, respuestas_acumuladas, respuestas_actuales, num_alumnos=NUM_ALUMNOS):
     """
     Dibuja un panel lateral con el estado de todos los alumnos.
     Muestra quién ha sido detectado y su última respuesta.
@@ -200,7 +202,7 @@ def dibujar_panel_estado(frame, respuestas_acumuladas, respuestas_actuales):
     start_x = 15
     start_y = 80
 
-    for alumno_id in range(NUM_ALUMNOS):
+    for alumno_id in range(num_alumnos):
         row = alumno_id // cols
         col = alumno_id % cols
         x = start_x + col * (cell_size + 5)
@@ -325,12 +327,12 @@ def main():
             break
 
         # Detectar tarjetas
-        respuestas_actuales, corners, ids = detectar_tarjetas(frame, detector)
+        respuestas_actuales, corners, ids = detectar_tarjetas(frame, detector, num_alumnos=args.alumnos)
 
         # Acumular respuestas (la última detección gana)
         respuestas_acumuladas.update(respuestas_actuales)
 
-        # Enviar respuestas a la web app cada segundo
+        # Enviar respuestas a la web app cada segundo (cuando se usa como proceso independiente)
         current_time = time.time()
         if current_time - last_send > 1:
             try:
@@ -398,6 +400,139 @@ def main():
     cap.release()
     cv2.destroyAllWindows()
     print("PyLickers cerrado.")
+
+
+class DetectorThread(threading.Thread):
+    """Hilo que ejecuta el detector en el mismo proceso.
+
+    - Actualiza `sesion_activa['respuestas']` directamente.
+    - Mantiene `latest_frame` como JPEG bytes para streaming.
+    - Observa `sesion_activa['reset_counter']` para limpiar su estado.
+    """
+
+    def __init__(self, cam_index=0, sesion_activa=None, num_alumnos=NUM_ALUMNOS, show_window=False):
+        super().__init__(daemon=True)
+        self.cam_index = cam_index
+        self.sesion_activa = sesion_activa or {}
+        self.num_alumnos = num_alumnos
+        self.show_window = show_window
+        self.running = False
+        self.latest_frame = None
+        self._cap = None
+
+    def get_latest_frame(self):
+        return self.latest_frame
+
+    def stop(self, timeout=2.0):
+        self.running = False
+        try:
+            if self._cap is not None:
+                self._cap.release()
+        except Exception:
+            pass
+        if self.show_window:
+            try:
+                cv2.destroyAllWindows()
+            except Exception:
+                pass
+
+    def run(self):
+        detector = inicializar_detector()
+        cap = cv2.VideoCapture(self.cam_index)
+        self._cap = cap
+        if not cap.isOpened():
+            print(f"DetectorThread: no se pudo abrir la cámara {self.cam_index}")
+            return
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+
+        respuestas_acumuladas = {}
+        last_reset_counter = int(self.sesion_activa.get('reset_counter', 0)) if self.sesion_activa else 0
+        modo_debug = False
+        self.running = True
+        last_send = 0
+        try:
+            while self.running:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+
+                respuestas_actuales, corners, ids = detectar_tarjetas(frame, detector, num_alumnos=self.num_alumnos)
+                respuestas_acumuladas.update(respuestas_actuales)
+
+                # Apply server-requested reset_counter
+                try:
+                    srv = int(self.sesion_activa.get('reset_counter', 0)) if self.sesion_activa else 0
+                    if srv > last_reset_counter:
+                        respuestas_acumuladas = {}
+                        last_reset_counter = srv
+                except Exception:
+                    pass
+
+                # If server is pausing, buffer instead of updating
+                if self.sesion_activa and self.sesion_activa.get('pausing'):
+                    self.sesion_activa.setdefault('incoming_buffer', []).append(respuestas_actuales)
+                else:
+                    if self.sesion_activa is not None:
+                        self.sesion_activa.setdefault('respuestas', {}).update(respuestas_acumuladas)
+
+                # Draw overlays
+                resultado = dibujar_detecciones(frame, corners, ids, respuestas_actuales, num_alumnos=self.num_alumnos)
+                resultado = dibujar_panel_estado(resultado, respuestas_acumuladas, respuestas_actuales, num_alumnos=self.num_alumnos)
+
+                # Encode to JPEG for streaming
+                try:
+                    ret2, jpg = cv2.imencode('.jpg', resultado, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+                    if ret2:
+                        self.latest_frame = jpg.tobytes()
+                except Exception:
+                    self.latest_frame = None
+
+                # If show_window, display and handle keys
+                if self.show_window:
+                    cv2.imshow('PyLickers', resultado)
+                    key = cv2.waitKey(1) & 0xFF
+                    if key in (ord('q'), 27):
+                        break
+                    elif key == ord('s'):
+                        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                        filename = f"pylickers_resultado_{timestamp}.json"
+                        datos = {
+                            'timestamp': timestamp,
+                            'respuestas': respuestas_acumuladas,
+                            'resumen': { letra: sum(1 for v in respuestas_acumuladas.values() if v == letra) for letra in 'ABCD' },
+                            'total_detectados': len(respuestas_acumuladas),
+                        }
+                        with open(filename, 'w', encoding='utf-8') as f:
+                            json.dump(datos, f, indent=2, ensure_ascii=False)
+                        print(f"Respuestas guardadas en {filename}")
+                    elif key == ord('r'):
+                        # schedule reset in server (if present)
+                        try:
+                            requests.post('http://localhost:5000/api/sesion/schedule_reset', timeout=0.5)
+                            print('Detector: reset programado en servidor; se aplicará al avanzar la pregunta.')
+                        except Exception:
+                            print('Detector: no se pudo programar reset en servidor.')
+                    elif key == ord('d'):
+                        modo_debug = not modo_debug
+                        print(f'Debug: {"ON" if modo_debug else "OFF"}')
+
+                # Sleep a bit to avoid hogging CPU
+                time.sleep(0.01)
+        finally:
+            try:
+                cap.release()
+            except Exception:
+                pass
+            if self.show_window:
+                try:
+                    cv2.destroyAllWindows()
+                except Exception:
+                    pass
+
+
+if __name__ == '__main__':
+    main()
 
 
 if __name__ == "__main__":

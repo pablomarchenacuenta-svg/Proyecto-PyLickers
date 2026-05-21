@@ -132,6 +132,82 @@
           }
         }
       ]
+    },
+    {
+      "partida_id": 5,
+      "timestamp": "2026-05-21T12:43:01.521864",
+      "juego": {
+        "id": 0,
+        "nombre": "PSEINT"
+      },
+      "alumnos": {},
+      "puntuaciones": {},
+      "ganador": "Sin ganador",
+      "detalles_preguntas": [
+        {
+          "pregunta_idx": 0,
+          "texto": "¿Cuál es la instrucción utilizada en PSeInt para mostrar un mensaje o el valor de una variable en la pantalla?",
+          "correcta": "B",
+          "opciones": {
+            "A": "Leer",
+            "B": "Escribir",
+            "C": "Imprimir",
+            "D": "Print"
+          },
+          "respuestas": {
+            "28": "B"
+          }
+        },
+        {
+          "pregunta_idx": 1,
+          "texto": "¿Cuál de las siguientes opciones es la forma correcta de asignar el resultado de una operación a una variable en PSeInt?",
+          "correcta": "A",
+          "opciones": {
+            "A": "x <- 5 + 3",
+            "B": "x = 5 + 3",
+            "C": "x == 5 + 3",
+            "D": "Asignar x = 5 + 3"
+          },
+          "respuestas": {}
+        }
+      ]
+    },
+    {
+      "partida_id": 6,
+      "timestamp": "2026-05-21T12:49:45.382036",
+      "juego": {
+        "id": 0,
+        "nombre": "PSEINT"
+      },
+      "alumnos": {},
+      "puntuaciones": {},
+      "ganador": "Sin ganador",
+      "detalles_preguntas": [
+        {
+          "pregunta_idx": 0,
+          "texto": "¿Cuál es la instrucción utilizada en PSeInt para mostrar un mensaje o el valor de una variable en la pantalla?",
+          "correcta": "B",
+          "opciones": {
+            "A": "Leer",
+            "B": "Escribir",
+            "C": "Imprimir",
+            "D": "Print"
+          },
+          "respuestas": {}
+        },
+        {
+          "pregunta_idx": 1,
+          "texto": "¿Cuál de las siguientes opciones es la forma correcta de asignar el resultado de una operación a una variable en PSeInt?",
+          "correcta": "A",
+          "opciones": {
+            "A": "x <- 5 + 3",
+            "B": "x = 5 + 3",
+            "C": "x == 5 + 3",
+            "D": "Asignar x = 5 + 3"
+          },
+          "respuestas": {}
+        }
+      ]
     }
   ],
   "alumnos": {},

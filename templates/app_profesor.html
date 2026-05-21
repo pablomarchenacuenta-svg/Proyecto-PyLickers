@@ -500,6 +500,22 @@
                                                                 <div class="bar-track"><div class="bar-fill d" id="playBarD" style="width:0%"></div></div>
                                                             </div>
                                                         </div>
+                                                        <div style="margin-top:1.25rem; display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap;">
+                                                            <div style="flex:1; min-width:280px;">
+                                                                <div style="background:var(--card-bg); padding:0.5rem; border-radius:8px; border:1px solid var(--border);">
+                                                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                                                                        <div style="font-weight:600; color:var(--text);">Cámara</div>
+                                                                        <div style="display:flex; gap:0.5rem; align-items:center;">
+                                                                            <button class="btn btn-secondary" onclick="toggleCameraView()" type="button">Mostrar/ocultar</button>
+                                                                            <button class="btn btn-secondary" onclick="toggleNativeWindow()" type="button">Toggle ventana</button>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div style="text-align:center;">
+                                                                        <img id="videoFeed" src="/video_feed" alt="Video feed" style="max-width:100%; width:100%; border-radius:6px; display:none; background:#000;" />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                         <div class="btn-group" style="margin-top: 1.5rem; justify-content: space-between;">
                                                             <div>
                                                                 <button class="btn btn-secondary" onclick="nextQuestion()">Siguiente</button>
@@ -1444,6 +1460,21 @@
                                                 renderQuestions();
                                             }
                                         }
+
+        function toggleCameraView() {
+            const img = document.getElementById('videoFeed');
+            if (!img) return;
+            img.style.display = (img.style.display === 'none' || img.style.display === '') ? 'block' : 'none';
+        }
+
+        function toggleNativeWindow() {
+            fetch('/api/sesion/toggle_window', { method: 'POST' })
+                .then(r => r.json())
+                .then(j => {
+                    if (j.ok) alert('Ventana nativa: ' + (j.show_window ? 'MOSTRANDO' : 'OCULTA'));
+                    else alert('Error: ' + (j.error || ''));
+                }).catch(e => alert('Error toggling window: ' + e.message));
+        }
 
         function initApp() {
             cargarJuegos();

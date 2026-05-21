@@ -23,6 +23,8 @@ import os
 import sys
 import argparse
 import subprocess
+import threading
+import time
 from datetime import datetime
 import io
 import csv
@@ -39,6 +41,12 @@ except Exception:
     plt = None
     mcolors = None
     np = None
+
+# Try to import the DetectorThread class; fall back if detector or OpenCV not available
+try:
+    from detector import DetectorThread
+except Exception:
+    DetectorThread = None
 
 app = Flask(__name__)
 
@@ -106,6 +114,10 @@ sesion_activa = {
 
 # Proceso del detector (si se lanza desde la web)
 detector_proc = None
+detector_thread = None
+
+# Índice de cámara (puede ajustarse con --camara)
+CAMARA_IDX = 0
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -311,11 +323,21 @@ def api_iniciar():
     sesion_activa["activa"] = True
     # Lanzar detector en background
     try:
+        global detector_proc, detector_thread
+        # Prefer in-process DetectorThread if available
+        if detector_thread is not None and getattr(detector_thread, 'is_alive', lambda: False)():
+            return jsonify({"ok": True, "msg": "Detector ya en ejecución (thread)"})
+
+        if DetectorThread is not None:
+            detector_thread = DetectorThread(cam_index=CAMARA_IDX, sesion_activa=sesion_activa, num_alumnos=NUM_ALUMNOS, show_window=False)
+            detector_thread.start()
+            return jsonify({"ok": True, "msg": "Detector lanzado en hilo"})
+
+        # Fallback: spawn external process
         global detector_proc
         if detector_proc is not None and detector_proc.poll() is None:
             return jsonify({"ok": True, "msg": "Detector ya en ejecución", "pid": detector_proc.pid})
 
-        # Use process group to allow termination
         kwargs = {}
         if os.name == 'nt':
             kwargs['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
@@ -330,31 +352,79 @@ def api_iniciar():
 def api_parar():
     sesion_activa["activa"] = False
     global detector_proc
-    if detector_proc is None or detector_proc.poll() is not None:
+    global detector_proc, detector_thread
+    # If no detector running (thread or process)
+    if (detector_thread is None or not getattr(detector_thread, 'is_alive', lambda: False)()) and (detector_proc is None or (hasattr(detector_proc, 'poll') and detector_proc.poll() is not None)):
         detector_proc = None
-        return jsonify({"ok": True, "msg": "No había proceso del detector"})
+        detector_thread = None
+        return jsonify({"ok": True, "msg": "No había proceso/hilo del detector"})
 
     if DETECTOR_KEEP_RUNNING:
         return jsonify({"ok": True, "msg": "Sesión detenida. El detector permanece listo para el siguiente inicio."})
 
+    # Stop thread if present
+    if detector_thread is not None and getattr(detector_thread, 'is_alive', lambda: False)():
+        try:
+            detector_thread.stop()
+            detector_thread.join(timeout=3)
+        except Exception:
+            pass
+        detector_thread = None
+        return jsonify({"ok": True})
+
+    # Fallback: terminate external process
     try:
-        # Try graceful termination
-        if os.name == 'nt':
-            try:
-                # send CTRL_BREAK to the process group
-                detector_proc.send_signal(signal.CTRL_BREAK_EVENT)
-            except Exception:
+        if detector_proc is not None:
+            if os.name == 'nt':
+                try:
+                    detector_proc.send_signal(signal.CTRL_BREAK_EVENT)
+                except Exception:
+                    detector_proc.terminate()
+            else:
                 detector_proc.terminate()
-        else:
-            detector_proc.terminate()
-        detector_proc.wait(timeout=3)
+            detector_proc.wait(timeout=3)
     except Exception:
         try:
-            detector_proc.kill()
+            if detector_proc:
+                detector_proc.kill()
         except Exception:
             pass
     detector_proc = None
     return jsonify({"ok": True})
+
+
+@app.route('/video_feed')
+def video_feed():
+    """MJPEG stream from the detector thread's latest frame."""
+    def gen():
+        while True:
+            try:
+                if 'detector_thread' in globals() and detector_thread is not None:
+                    frame = detector_thread.get_latest_frame()
+                else:
+                    frame = None
+                if frame:
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+            except GeneratorExit:
+                break
+            except Exception:
+                pass
+            time.sleep(0.05)
+    return Response(gen(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+
+@app.route('/api/sesion/toggle_window', methods=['POST'])
+def api_toggle_window():
+    """Toggle native OpenCV window from the web UI."""
+    global detector_thread
+    if detector_thread is None:
+        return jsonify({'ok': False, 'error': 'Detector no iniciado en este proceso'}), 400
+    try:
+        detector_thread.show_window = not bool(detector_thread.show_window)
+        return jsonify({'ok': True, 'show_window': bool(detector_thread.show_window)})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
 
 
 @app.route('/api/resultados/juego/<int:idx>')
@@ -667,15 +737,19 @@ def api_iniciar_juego():
     
     # Iniciar escaneo
     try:
-        global detector_proc
-        if detector_proc is not None and detector_proc.poll() is None:
+        global detector_proc, detector_thread
+        # If a detector thread is already running, keep it
+        if detector_thread is not None and getattr(detector_thread, 'is_alive', lambda: False)():
             pass
-        
-        kwargs = {}
-        if os.name == 'nt':
-            kwargs['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
-        
-        detector_proc = subprocess.Popen([sys.executable, "detector.py", "--alumnos", str(NUM_ALUMNOS)], **kwargs)
+        else:
+            if DetectorThread is not None:
+                detector_thread = DetectorThread(cam_index=CAMARA_IDX, sesion_activa=sesion_activa, num_alumnos=NUM_ALUMNOS, show_window=False)
+                detector_thread.start()
+            else:
+                kwargs = {}
+                if os.name == 'nt':
+                    kwargs['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
+                detector_proc = subprocess.Popen([sys.executable, "detector.py", "--alumnos", str(NUM_ALUMNOS)], **kwargs)
     except Exception as e:
         print(f"Error al lanzar detector: {e}")
         return jsonify({"error": str(e)}), 500
@@ -822,18 +896,27 @@ def api_finalizar_juego():
     
     # Parar escaneo
     try:
-        global detector_proc
-        if detector_proc is None or detector_proc.poll() is not None:
-            detector_proc = None
+        global detector_proc, detector_thread
+        # Stop thread if present
+        if detector_thread is not None and getattr(detector_thread, 'is_alive', lambda: False)():
+            try:
+                detector_thread.stop()
+                detector_thread.join(timeout=3)
+            except Exception:
+                pass
+            detector_thread = None
         else:
-            if os.name == 'nt':
-                try:
-                    os.kill(detector_proc.pid, signal.CTRL_BREAK_EVENT)
-                except Exception:
-                    pass
+            if detector_proc is None or detector_proc.poll() is not None:
+                detector_proc = None
             else:
-                detector_proc.terminate()
-            detector_proc.wait(timeout=3)
+                if os.name == 'nt':
+                    try:
+                        os.kill(detector_proc.pid, signal.CTRL_BREAK_EVENT)
+                    except Exception:
+                        pass
+                else:
+                    detector_proc.terminate()
+                detector_proc.wait(timeout=3)
     except Exception:
         try:
             if detector_proc:
@@ -897,8 +980,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="PyLickers - Interfaz del Profesor")
     parser.add_argument("--port", type=int, default=5000)
     parser.add_argument("--alumnos", type=int, default=30)
+    parser.add_argument("--camara", type=int, default=0)
     args = parser.parse_args()
     NUM_ALUMNOS = min(max(args.alumnos, 1), 49)
+    CAMARA_IDX = args.camara
 
     print(f"PyLickers Web arrancando en http://localhost:{args.port}")
     print(f"Alumnos configurados: {NUM_ALUMNOS}")
