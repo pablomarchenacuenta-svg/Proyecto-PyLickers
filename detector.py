@@ -281,13 +281,18 @@ def dibujar_panel_estado(frame, respuestas_acumuladas, respuestas_actuales, num_
 
 def main():
     parser = argparse.ArgumentParser(description="PyLickers - Detector de tarjetas")
-    parser.add_argument("--camara", type=int, default=0,
-                        help="Índice de la cámara (por defecto: 0)")
+    parser.add_argument("--camara", type=str, default="0",
+                        help="Índice de la cámara o URL (por defecto: 0)")
     parser.add_argument("--debug", action="store_true",
                         help="Activar modo debug")
     parser.add_argument("--alumnos", type=int, default=4,
                         help="Número de alumnos")
     args = parser.parse_args()
+
+    try:
+        args.camara = int(args.camara)
+    except ValueError:
+        pass
 
     global NUM_ALUMNOS
     NUM_ALUMNOS = args.alumnos

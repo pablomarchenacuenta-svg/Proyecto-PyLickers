@@ -778,6 +778,241 @@
           "respuestas": {}
         }
       ]
+    },
+    {
+      "partida_id": 14,
+      "timestamp": "2026-05-22T15:01:03.304738",
+      "juego": {
+        "id": 0,
+        "nombre": "PSEINT"
+      },
+      "alumnos": {
+        "0": {
+          "nombre": "Carla"
+        },
+        "1": {
+          "nombre": "Rodrigo"
+        },
+        "2": {
+          "nombre": "Renzo David"
+        },
+        "3": {
+          "nombre": "Cristóbal Miguel"
+        },
+        "4": {
+          "nombre": "Geraldine Mireya"
+        },
+        "5": {
+          "nombre": "Ignacio"
+        },
+        "6": {
+          "nombre": "Diego"
+        },
+        "7": {
+          "nombre": "Paula"
+        },
+        "8": {
+          "nombre": "Andrea"
+        },
+        "9": {
+          "nombre": "Lucía"
+        },
+        "10": {
+          "nombre": "Nicolás"
+        },
+        "11": {
+          "nombre": "M.Eloisa"
+        },
+        "12": {
+          "nombre": "Guillermo"
+        },
+        "13": {
+          "nombre": "Pablo"
+        },
+        "14": {
+          "nombre": "Martín"
+        },
+        "15": {
+          "nombre": "Gara"
+        },
+        "16": {
+          "nombre": "Ivet"
+        },
+        "17": {
+          "nombre": "Juan"
+        },
+        "18": {
+          "nombre": "Micaela"
+        },
+        "19": {
+          "nombre": "Paula"
+        },
+        "20": {
+          "nombre": "Pablo"
+        },
+        "21": {
+          "nombre": "Marcos"
+        },
+        "22": {
+          "nombre": "Martha Paloma"
+        },
+        "23": {
+          "nombre": "Daniel"
+        },
+        "24": {
+          "nombre": "Ramón"
+        },
+        "25": {
+          "nombre": "David"
+        },
+        "26": {
+          "nombre": "Malak"
+        },
+        "27": {
+          "nombre": "Daniel"
+        },
+        "28": {
+          "nombre": "César"
+        },
+        "29": {
+          "nombre": "Jerónimo"
+        },
+        "30": {
+          "nombre": "Miguel"
+        }
+      },
+      "puntuaciones": {
+        "24": -1,
+        "17": -1,
+        "10": -1
+      },
+      "ganador": "Ramón, Juan, Nicolás",
+      "detalles_preguntas": [
+        {
+          "pregunta_idx": 0,
+          "texto": "¿Qué palabra reservada se utiliza en PSeInt para permitir al usuario ingresar un dato por teclado y guardarlo en una variable?",
+          "correcta": "C",
+          "opciones": {
+            "A": "Ingresar",
+            "B": "Capturar",
+            "C": "Leer",
+            "D": "Escribir"
+          },
+          "respuestas": {
+            "10": "B",
+            "17": "B",
+            "24": "A"
+          }
+        },
+        {
+          "pregunta_idx": 1,
+          "texto": "¿Cuál es la forma correcta de declarar el tipo de una variable como número entero en PSeInt?",
+          "correcta": "A",
+          "opciones": {
+            "A": "Definir num Como Entero",
+            "B": "num = Entero",
+            "C": "Variable num Tipo Entero",
+            "D": "Entero num"
+          },
+          "respuestas": {}
+        },
+        {
+          "pregunta_idx": 2,
+          "texto": "¿Qué estructura de control se utiliza cuando queremos repetir un bloque de código un número *exacto* y conocido de veces?",
+          "correcta": "B",
+          "opciones": {
+            "A": "Mientras",
+            "B": "Para",
+            "C": "Repetir",
+            "D": "Si-Entonces"
+          },
+          "respuestas": {}
+        },
+        {
+          "pregunta_idx": 3,
+          "texto": "Al final de una estructura condicional 'Si-Entonces', ¿qué instrucción se debe colocar obligatoriamente para cerrarla?",
+          "correcta": "C",
+          "opciones": {
+            "A": "FinMientras",
+            "B": "TerminarSi",
+            "C": "FinSi",
+            "D": "Fin"
+          },
+          "respuestas": {}
+        },
+        {
+          "pregunta_idx": 4,
+          "texto": "¿Cuál es el operador lógico utilizado en PSeInt para representar la disyunción (que se cumpla una condición O la otra)?",
+          "correcta": "C",
+          "opciones": {
+            "A": "AND",
+            "B": "Y",
+            "C": "O",
+            "D": "NOT"
+          },
+          "respuestas": {}
+        },
+        {
+          "pregunta_idx": 5,
+          "texto": "¿Cuál de los siguientes NO es un tipo de datos válido al definir una variable en PSeInt?",
+          "correcta": "C",
+          "opciones": {
+            "A": "Caracter",
+            "B": "Logico",
+            "C": "Decimal",
+            "D": "Real"
+          },
+          "respuestas": {}
+        },
+        {
+          "pregunta_idx": 6,
+          "texto": "¿Qué operador se utiliza en PSeInt para calcular el residuo o resto de una división entera?",
+          "correcta": "B",
+          "opciones": {
+            "A": "/",
+            "B": "Mod",
+            "C": "Div",
+            "D": "%"
+          },
+          "respuestas": {}
+        },
+        {
+          "pregunta_idx": 7,
+          "texto": "¿Cuál es la diferencia principal entre la estructura 'Mientras' y la estructura 'Repetir' (Hasta Que)?",
+          "correcta": "B",
+          "opciones": {
+            "A": "'Repetir' evalúa la condición al principio y 'Mientras' al final.",
+            "B": "'Mientras' evalúa la condición al principio y 'Repetir' evalúa al final, asegurando que el código se ejecute al menos una vez.",
+            "C": "'Mientras' solo sirve para números y 'Repetir' para texto.",
+            "D": "No hay ninguna diferencia, funcionan exactamente igual."
+          },
+          "respuestas": {}
+        },
+        {
+          "pregunta_idx": 8,
+          "texto": "Si una variable lógica se define en PSeInt, ¿cuáles son los únicos valores que puede almacenar?",
+          "correcta": "B",
+          "opciones": {
+            "A": "Cualquier número entero",
+            "B": "Verdadero o Falso",
+            "C": "Texto entre comillas",
+            "D": "1 o 0 únicamente"
+          },
+          "respuestas": {}
+        },
+        {
+          "pregunta_idx": 9,
+          "texto": "Para evaluar múltiples alternativas posibles para el valor de una sola variable sin usar muchos 'Si-Entonces' anidados, ¿qué estructura es la más adecuada?",
+          "correcta": "A",
+          "opciones": {
+            "A": "Segun",
+            "B": "Para",
+            "C": "Mientras",
+            "D": "Repetir"
+          },
+          "respuestas": {}
+        }
+      ]
     }
   ],
   "alumnos": {

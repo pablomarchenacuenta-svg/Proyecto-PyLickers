@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 PyLickers - INTERFAZ WEB DEL PROFESOR
 ======================================
@@ -341,7 +341,7 @@ def api_iniciar():
         kwargs = {}
         if os.name == 'nt':
             kwargs['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
-        detector_proc = subprocess.Popen([sys.executable, "detector.py", "--alumnos", str(NUM_ALUMNOS)], **kwargs)
+        detector_proc = subprocess.Popen([sys.executable, "detector.py", "--alumnos", str(NUM_ALUMNOS), "--camara", str(CAMARA_IDX)], **kwargs)
         return jsonify({"ok": True, "pid": detector_proc.pid})
     except Exception as e:
         print(f"Error al lanzar detector: {e}")
@@ -749,7 +749,7 @@ def api_iniciar_juego():
                 kwargs = {}
                 if os.name == 'nt':
                     kwargs['creationflags'] = subprocess.CREATE_NEW_PROCESS_GROUP
-                detector_proc = subprocess.Popen([sys.executable, "detector.py", "--alumnos", str(NUM_ALUMNOS)], **kwargs)
+                detector_proc = subprocess.Popen([sys.executable, "detector.py", "--alumnos", str(NUM_ALUMNOS), "--camara", str(CAMARA_IDX)], **kwargs)
     except Exception as e:
         print(f"Error al lanzar detector: {e}")
         return jsonify({"error": str(e)}), 500
@@ -1081,10 +1081,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="PyLickers - Interfaz del Profesor")
     parser.add_argument("--port", type=int, default=5000)
     parser.add_argument("--alumnos", type=int, default=30)
-    parser.add_argument("--camara", type=int, default=0)
+    parser.add_argument("--camara", type=str, default="0")
     args = parser.parse_args()
     NUM_ALUMNOS = min(max(args.alumnos, 1), 49)
-    CAMARA_IDX = args.camara
+    try:
+        CAMARA_IDX = int(args.camara)
+    except ValueError:
+        CAMARA_IDX = args.camara
 
     print(f"PyLickers Web arrancando en http://localhost:{args.port}")
     print(f"Alumnos configurados: {NUM_ALUMNOS}")
