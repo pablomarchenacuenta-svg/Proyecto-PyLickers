@@ -1091,4 +1091,4 @@ if __name__ == "__main__":
 
     print(f"PyLickers Web arrancando en http://localhost:{args.port}")
     print(f"Alumnos configurados: {NUM_ALUMNOS}")
-    app.run(host="0.0.0.0", port=args.port, debug=True)
+    app.run(host="127.0.0.1", port=args.port, debug=True)
